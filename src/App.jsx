@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Mapa from './components/Mapa';
 import Sidebar from './components/Sidebar';
 import FormularioLugar from './components/FormularioLugar';
+import Mia from './components/Mia';
 import { lugares as lugaresIniciales } from './data/lugares';
 
 function App() {
@@ -104,6 +105,9 @@ function App() {
         onSubmit={handleSubmitLugar}
         initialCoords={newLugarCoords}
       />
+
+      {/* Mia Chat Widget */}
+      <Mia />
     </div>
   );
 }
