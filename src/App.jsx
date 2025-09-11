@@ -8,18 +8,29 @@ function App() {
   const [lugares, setLugares] = useState(lugaresIniciales);
   const [selectedLugar, setSelectedLugar] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [newLugarCoords, setNewLugarCoords] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAddingMode, setIsAddingMode] = useState(false);
 
-  // Filter lugares based on search term
+  // Filter lugares based on search term and category
   const filteredLugares = useMemo(() => {
-    if (!searchTerm.trim()) return lugares;
+    let filtered = lugares;
     
-    return lugares.filter(lugar =>
-      lugar.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lugar.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, lugares]);
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(lugar =>
+        lugar.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lugar.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (selectedCategory) {
+      filtered = filtered.filter(lugar => lugar.categoria === selectedCategory);
+    }
+    
+    return filtered;
+  }, [searchTerm, selectedCategory, lugares]);
 
 
 
@@ -29,7 +40,19 @@ function App() {
   };
 
   const handleAddLugar = () => {
+    setIsAddingMode(true);
+  };
+
+  const handleMapClick = (latlng) => {
+    setNewLugarCoords({ lat: latlng.lat, lng: latlng.lng });
+    setIsAddingMode(false);
     setIsFormOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setNewLugarCoords(null);
+    setIsAddingMode(false);
   };
 
   const handleSubmitLugar = (nuevoLugar) => {
@@ -53,6 +76,8 @@ function App() {
         filteredLugares={filteredLugares}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
         onLugarClick={handleLugarClick}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
@@ -65,6 +90,8 @@ function App() {
         <Mapa
           lugares={filteredLugares}
           selectedLugar={selectedLugar}
+          onMapClick={handleMapClick}
+          isAddingMode={isAddingMode}
         />
       </div>
 
@@ -73,11 +100,12 @@ function App() {
       {/* Form Modal */}
       <FormularioLugar
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={handleFormClose}
         onSubmit={handleSubmitLugar}
+        initialCoords={newLugarCoords}
       />
     </div>
   );
 }
 
-export default App; //poruqe no 
+export default App; //poruqe no
