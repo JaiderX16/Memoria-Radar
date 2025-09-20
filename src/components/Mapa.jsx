@@ -58,7 +58,6 @@ const MapClickHandler = ({ onMapClick, isAddingMode, setMousePosition }) => {
   return null;
 };
 
-<<<<<<< HEAD
 // Componente para manejar la geolocalización del usuario
 const UserLocationMarker = ({ position, onLocationFound }) => {
   const map = useMap();
@@ -100,9 +99,6 @@ const UserLocationMarker = ({ position, onLocationFound }) => {
     </Marker>
   );
 };
-
-=======
->>>>>>> 0ddffdc9253a1958fcee5d16249423538b8e2584
 // Child component for each marker to manage its own expanded state
 const LugarMarker = ({ lugar }) => {
   const [expanded, setExpanded] = useState(false);
@@ -187,12 +183,9 @@ const LugarMarker = ({ lugar }) => {
 
 const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
   const mapRef = useRef();
-<<<<<<< HEAD
   const [userLocation, setUserLocation] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
-=======
->>>>>>> 0ddffdc9253a1958fcee5d16249423538b8e2584
 
   // Center map on selected lugar
   useEffect(() => {
@@ -209,7 +202,6 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
   const huancayoCenter = [-12.0656, -75.2103];
   const [mousePosition, setMousePosition] = useState(null);
 
-<<<<<<< HEAD
   // Función para obtener la ubicación del usuario
   const getUserLocation = () => {
     setIsLocating(true);
@@ -251,8 +243,6 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
     );
   };
 
-=======
->>>>>>> 0ddffdc9253a1958fcee5d16249423538b8e2584
   // Create a temporary icon for adding mode
   const tempIcon = L.divIcon({
     className: 'custom-marker-temp',
@@ -267,7 +257,6 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
 
   return (
     <div className="h-full w-full relative">
-<<<<<<< HEAD
       {/* Botón de ubicación */}
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
         <button
@@ -301,9 +290,6 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
           </div>
         )}
       </div>
-
-=======
->>>>>>> 0ddffdc9253a1958fcee5d16249423538b8e2584
       <MapContainer
           center={huancayoCenter}
           zoom={13}
@@ -319,7 +305,6 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
         
         <MapClickHandler onMapClick={onMapClick} isAddingMode={isAddingMode} setMousePosition={setMousePosition} />
         
-<<<<<<< HEAD
         {/* Marcador de ubicación del usuario */}
         {userLocation && (
           <UserLocationMarker 
@@ -327,9 +312,6 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
             onLocationFound={(pos) => console.log('Ubicación encontrada:', pos)}
           />
         )}
-        
-=======
->>>>>>> 0ddffdc9253a1958fcee5d16249423538b8e2584
         {isAddingMode && (
           <>
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg shadow-lg z-[1000] pointer-events-none">
