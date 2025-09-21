@@ -8,7 +8,6 @@ const DEFAULT_OPTIONS = {
   mousewheelCtrlKey: false,
   touchmoveTwoFingers: false,
   keyboard: 'fullscreen',
-  webgl: true,
   canvasBackground: '#000000',
   plugins: []
 };
@@ -51,9 +50,9 @@ const usePanoramaViewer = (panoramaUrl, containerRef, options = {}) => {
       
       const mergedPlugins = [
         [AutorotatePlugin, {
-          autorotatePitch: '0deg',
-          autorotateSpeed: '1rpm',
-          autorotateDelay: 1000
+          pitch: '0deg',
+          speed: '1rpm',
+          delay: 1000
         }]
       ];
       

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMapEvents, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Panorama360 from './Panorama360';
@@ -58,6 +58,30 @@ const MapClickHandler = ({ onMapClick, isAddingMode, setMousePosition }) => {
   return null;
 };
 
+// Ajusta vista a la ruta cuando se calculan coordenadas
+const FitToRoute = ({ coords }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (coords && coords.length > 1) {
+      map.fitBounds(coords, { padding: [50, 50], animate: true });
+    }
+  }, [coords, map]);
+  
+  return null;
+};
+
+// Centrar mapa en ubicación del usuario cuando se obtiene
+const FlyToUser = ({ pos }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (pos) {
+      map.flyTo([pos.lat, pos.lng], 15, { duration: 1 });
+    }
+  }, [pos, map]);
+  return null;
+};
+
 // Componente para manejar la geolocalización del usuario
 const UserLocationMarker = ({ position, onLocationFound }) => {
   const map = useMap();
@@ -100,7 +124,7 @@ const UserLocationMarker = ({ position, onLocationFound }) => {
   );
 };
 // Child component for each marker to manage its own expanded state
-const LugarMarker = ({ lugar }) => {
+const LugarMarker = ({ lugar, getDirectionsTo, userLocation, routing }) => {
   const [expanded, setExpanded] = useState(false);
   const map = useMap();
 
@@ -131,8 +155,7 @@ const LugarMarker = ({ lugar }) => {
                 navbar: false,
                 mousemove: true,
                 touchmoveTwoFingers: false,
-                canvasBackground: '#000000',
-                autorotateSpeed: '1rpm'
+                canvasBackground: '#000000'
               }}
               onError={(e) => console.error('Error loading panorama:', e)}
             />
@@ -166,14 +189,12 @@ const LugarMarker = ({ lugar }) => {
             <div className="text-xs text-gray-500 mt-2 text-left">
               Ubicación: {Number(lugar.latitud).toFixed(5)}, {Number(lugar.longitud).toFixed(5)}
             </div>
-            <a
-              href={`https://www.google.com/maps?q=${lugar.latitud},${lugar.longitud}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block text-blue-600 text-sm mt-2 hover:underline text-left"
+            <button
+              onClick={() => getDirectionsTo(lugar)}
+              className="inline-flex items-center rounded-md bg-white text-black border border-gray-300 px-2.5 py-1.5 mt-4 text-xs font-medium hover:bg-gray-100"
             >
-              Abrir en Google Maps
-            </a>
+              Cómo llegar
+            </button>
           </div>
         </div>
       </Popup>
@@ -201,6 +222,108 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
   // Huancayo, Peru center coordinates
   const huancayoCenter = [-12.0656, -75.2103];
   const [mousePosition, setMousePosition] = useState(null);
+  const [routeToLugar, setRouteToLugar] = useState(null);
+
+  // Estados para rutas OSRM
+  const [routeCoords, setRouteCoords] = useState([]);
+  const [routeInfo, setRouteInfo] = useState(null);
+  const [routing, setRouting] = useState(false);
+  const [routeError, setRouteError] = useState(null);
+  const [pendingTo, setPendingTo] = useState(null);
+
+  // Función para obtener direcciones hasta un lugar
+  const getDirectionsTo = (lugar) => {
+    if (!userLocation) {
+      setPendingTo({ lat: lugar.latitud, lng: lugar.longitud });
+      getUserLocation();
+      return;
+    }
+
+    // Usar OSRM para calcular ruta por carretera
+    routeTo({ lat: lugar.latitud, lng: lugar.longitud });
+  };
+
+  // Si se solicitó una ruta sin ubicación, esperar a obtenerla
+  useEffect(() => {
+    if (pendingTo && userLocation) {
+      routeTo({ lat: pendingTo.lat, lng: pendingTo.lng });
+      setPendingTo(null);
+    }
+  }, [pendingTo, userLocation]);
+
+  // Función para calcular la distancia entre dos puntos (fórmula de Haversine)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distancia en km
+  };
+
+  // Solicita ruta a OSRM y dibuja polyline
+  const routeTo = async (to) => {
+    if (!userLocation) {
+      console.log('No hay ubicación del usuario');
+      return;
+    }
+    
+    console.log('Calculando ruta desde:', userLocation, 'hasta:', to);
+    setRouting(true);
+    setRouteError(null);
+    
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&alternatives=false&steps=false`;
+      console.log('URL de OSRM:', url);
+      
+      const res = await fetch(url);
+      console.log('Respuesta de OSRM:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Error en respuesta OSRM:', errorText);
+        throw new Error(`Error ${res.status}: No se pudo calcular la ruta`);
+      }
+      
+      const data = await res.json();
+      console.log('Datos de ruta:', data);
+      
+      const route = data?.routes?.[0];
+      
+      if (!route) {
+        throw new Error("Ruta no encontrada");
+      }
+      
+      // Convertir coordenadas de [lng, lat] a [lat, lng] para Leaflet
+      const coords = route.geometry.coordinates.map((c) => [c[1], c[0]]);
+      
+      setRouteCoords(coords);
+      setRouteInfo({ 
+        distanceKm: Math.round((route.distance / 1000) * 10) / 10, 
+        durationMin: Math.round(route.duration / 60) 
+      });
+      
+      console.log('Ruta calculada exitosamente');
+      
+    } catch (e) {
+      console.error('Error calculando ruta:', e);
+      setRouteError(e.message || "Error calculando la ruta");
+      setRouteCoords([]);
+      setRouteInfo(null);
+    } finally {
+      setRouting(false);
+      console.log('Estado routing finalizado');
+    }
+  };
+
+  // Limpiar la ruta actual (coords, info y errores)
+  const clearRoute = () => {
+    setRouteCoords([]);
+    setRouteInfo(null);
+    setRouteError(null);
+  };
 
   // Función para obtener la ubicación del usuario
   const getUserLocation = () => {
@@ -262,9 +385,7 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
         <button
           onClick={getUserLocation}
           disabled={isLocating}
-          className={`bg-white hover:bg-gray-50 text-gray-700 px-3 py-2 rounded-lg shadow-lg border border-gray-200 flex items-center gap-2 transition-all duration-200 ${
-            isLocating ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-xl'
-          }`}
+          className="bg-white hover:bg-gray-50 text-gray-700 px-3 py-2 rounded-lg shadow-lg border border-gray-200 flex items-center gap-2 transition-all duration-200 hover:shadow-xl disabled:opacity-75 disabled:cursor-not-allowed"
           title="Obtener mi ubicación"
         >
           {isLocating ? (
@@ -283,11 +404,18 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
           )}
         </button>
         
-        {/* Mensaje de error */}
-        {locationError && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg shadow-lg text-sm">
-            {locationError}
-          </div>
+        {/* Botón para limpiar ruta */}
+        {(routeToLugar || routeCoords.length > 0) && (
+          <button
+            onClick={clearRoute}
+            className="bg-white hover:bg-gray-50 text-gray-700 px-3 py-2 rounded-lg shadow-lg border border-gray-200 flex items-center gap-2 transition-all duration-200 hover:shadow-xl"
+            title="Limpiar ruta"
+          >
+            <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span className="text-sm">Limpiar ruta</span>
+          </button>
         )}
       </div>
       <MapContainer
@@ -302,6 +430,12 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ZoomControl position="bottomright" />
+        
+        {/* Ajustar vista a la ruta cuando se calculan coordenadas */}
+        <FitToRoute coords={routeCoords} />
+        
+        {/* Centrar mapa en ubicación del usuario cuando se obtiene */}
+        <FlyToUser pos={userLocation} />
         
         <MapClickHandler onMapClick={onMapClick} isAddingMode={isAddingMode} setMousePosition={setMousePosition} />
         
@@ -324,8 +458,65 @@ const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
         )}
         
         {lugares.map((lugar) => (
-          <LugarMarker key={lugar.id} lugar={lugar} />
+          <LugarMarker key={lugar.id} lugar={lugar} getDirectionsTo={getDirectionsTo} userLocation={userLocation} routing={routing} />
         ))}
+        
+        {/* Línea de ruta y marcadores de inicio/fin */}
+        {routeCoords.length > 0 && (
+          <>
+            {/* Línea de la ruta real de OSRM */}
+            <Polyline 
+              positions={routeCoords} 
+              color="#1d4ed8" 
+              weight={5} 
+              opacity={0.8}
+            />
+            
+            {/* Marcador de inicio (ubicación del usuario) */}
+            {userLocation && (
+              <Marker position={[userLocation.lat, userLocation.lng]}>
+                <Popup>
+                  <div className="text-center">
+                    <h3 className="font-semibold text-blue-600 mb-1">Inicio</h3>
+                    <p className="text-sm text-gray-600">Tu ubicación actual</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
+          </>
+        )}
+        
+        {/* Panel flotante con información de ruta */}
+        {(routing || routeInfo || routeError || locationError) && (
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[1000] -translate-x-1/2">
+            <div className="pointer-events-auto flex items-center gap-3 rounded-md bg-white px-3 py-2 text-sm shadow-lg border border-gray-200">
+              {routing && (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span>Calculando ruta...</span>
+                </>
+              )}
+              {!routing && routeInfo && (
+                <>
+                  <span className="font-medium">Distancia: {routeInfo.distanceKm} km</span>
+                  <span className="text-gray-500">Tiempo: ~{routeInfo.durationMin} min</span>
+                  <button 
+                    onClick={clearRoute} 
+                    className="ml-2 rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
+                  >
+                    Limpiar
+                  </button>
+                </>
+              )}
+              {!routing && routeError && (
+                <span className="text-red-600">{routeError}</span>
+              )}
+              {locationError && (
+                <span className="text-red-600">{locationError}</span>
+              )}
+            </div>
+          </div>
+        )}
       </MapContainer>
     </div>
   );
