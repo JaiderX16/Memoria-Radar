@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Filter, X, ChevronDown, MapPin, Calendar, Star, SlidersHorizontal } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, MapPin, SlidersHorizontal } from 'lucide-react';
 import { categorias } from '../data/categorias';
 
 const FiltrosAvanzados = ({

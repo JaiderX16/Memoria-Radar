@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { globalFilterState, setMentionedPlacesFilter, clearMentionedPlacesFilter } from '../utils/globalState';
 // Usando backend Python (Flask) para IA y datos; sin dependencias locales de IA
 
-// Estilos CSS para MIA
+// Estilos CSS para MIA con paleta blanco y negro
 const MiaStyles = () => (
   <style dangerouslySetInnerHTML={{
     __html: `
@@ -14,7 +14,7 @@ const MiaStyles = () => (
       }
       
       .quick-suggestions button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #000;
         color: white;
         border: none;
         padding: 6px 12px;
@@ -22,12 +22,13 @@ const MiaStyles = () => (
         font-size: 12px;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
       
       .quick-suggestions button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        background: #333;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       }
       
       .mia-message-content {
@@ -51,14 +52,14 @@ const MiaStyles = () => (
       }
       
       .mia-message-content strong {
-        color: #4a5568;
+        color: #000;
         font-weight: 600;
       }
       
       .mia-message-content h2, .mia-message-content h3, .mia-message-content h4 {
         margin: 12px 0 8px 0;
         font-weight: 600;
-        color: #2d3748;
+        color: #000;
       }
       
       .mia-loading-dots {
@@ -70,7 +71,7 @@ const MiaStyles = () => (
       .mia-loading-dots div {
         width: 6px;
         height: 6px;
-        background: #9ca3af;
+        background: #666;
         border-radius: 50%;
         animation: mia-bounce 1.4s infinite ease-in-out both;
       }
@@ -324,18 +325,8 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
       setManualFilterState(newState);
     });
     
-    // AUTO-PRUEBA: Simular filtrado al cargar
-    const autoTestTimer = setTimeout(() => {
-      console.log('🧪 [MIA AUTO-TEST] Simulando respuesta de MIA...');
-      const lugaresExtraidos = ["Parque Constitución", "Plaza Huamanmarca"];
-      console.log('🧪 [MIA AUTO-TEST] Lugares extraídos:', lugaresExtraidos);
-      setMentionedPlacesFilter(lugaresExtraidos);
-      console.log('🧪 [MIA AUTO-TEST] Filtro aplicado');
-    }, 2000); // Esperar 2 segundos después de cargar
-    
     return () => {
       unsubscribe();
-      clearTimeout(autoTestTimer);
     };
   }, []);
 
@@ -416,13 +407,13 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
     filtersRef.current = currentFilters;
   }, [currentFilters]);
 
-  // Función para enviar mensajes rápidos
   const sendQuickMessage = (message) => {
-    setInputMessage(message);
-    setTimeout(() => handleSendMessage({ preventDefault: () => {} }), 100);
+    if (message?.trim()) {
+      setInputMessage(message);
+      setTimeout(() => handleSendMessage({ preventDefault: () => {} }), 100);
+    }
   };
 
-  // Hacer funciones globales disponibles para elementos HTML inyectados
   useEffect(() => {
     window.sendQuickMessage = sendQuickMessage;
     window.miaSetFilters = (search, category) => {
@@ -472,7 +463,6 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
       // Verificar caché primero
       const cachedResponse = miaApi.getCachedResponse(userMessage);
       if (cachedResponse) {
-        // Agregar mensaje de respuesta en caché
         setMessages((prev) => [
           ...prev,
           {
@@ -482,47 +472,7 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
           }
         ]);
         
-        // IMPORTANTE: También procesar lugares mencionados para respuestas en caché
-        try {
-          const extractRes = await fetch('/api/extract-places', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              response: cachedResponse,
-              message: userMessage 
-            })
-          });
-          
-          if (extractRes.ok) {
-            const extractData = await extractRes.json();
-            
-            // Procesar lugares mencionados igual que con respuestas nuevas
-            console.log('MIA DEBUG CACHE - Datos extraidos:', extractData);
-            if (Array.isArray(extractData.lugares_mencionados) && extractData.lugares_mencionados.length > 0) {
-              console.log('MIA DEBUG CACHE - Lugares mencionados extraidos:', extractData.lugares_mencionados);
-              // Activar filtro por lugares mencionados
-              setMentionedPlacesFilter(extractData.lugares_mencionados);
-              console.log('MIA DEBUG CACHE - setMentionedPlacesFilter llamado con:', extractData.lugares_mencionados);
-              
-              // Si hay múltiples lugares, usar búsqueda para mostrar todos
-            if (extractData.lugares_mencionados.length > 1 && typeof onSetSearch === 'function') {
-              const searchQuery = extractData.lugares_mencionados.join(' ');
-              console.log('MIA Query de busqueda creada:', searchQuery);
-              onSetSearch(searchQuery);
-              console.log('MIA DEBUG CACHE - onSetSearch multiple:', searchQuery);
-            } else if (extractData.lugares_mencionados.length === 1 && typeof onSetSearch === 'function') {
-              console.log('MIA Aplicando busqueda para lugar unico:', extractData.lugares_mencionados[0]);
-              onSetSearch(extractData.lugares_mencionados[0]);
-              console.log('MIA DEBUG CACHE - onSetSearch unico:', extractData.lugares_mencionados[0]);
-            }
-          } else {
-            console.log('MIA DEBUG CACHE - No hay lugares mencionados en cache');
-            }
-          }
-        } catch (extractErr) {
-          console.warn('Error extrayendo lugares de caché:', extractErr);
-        }
-        
+        console.log('🎯 [MIA] Respuesta en caché mostrada sin filtros automáticos');
         setIsLoading(false);
         return;
       }
@@ -533,7 +483,7 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
       
       const requestBody = { 
         message: userMessage, 
-        auto_filter: !manualState.isActive, // Solo auto-filtrar si no hay filtro manual activo
+        auto_filter: !manualState.isActive,
         manual_filter_active: manualState.isActive,
         current_manual_filter: manualState.currentFilter,
         stream: false,
@@ -542,7 +492,6 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
       };
       console.log('📤 [MIA] Enviando petición al backend:', requestBody);
       
-      // Delegar al backend Python: detección de intención, contexto y generación de respuesta
       console.log('🚀 [MIA] Enviando request al backend:', requestBody);
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -573,7 +522,6 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
       try {
         const manualState = globalFilterState.getState();
         
-        // 1) PRIORIDAD: Lugares mencionados específicos (siempre aplicar)
         console.log('🔍 [MIA] ANALISIS COMPLETO - Respuesta del backend:', data);
         console.log('🔍 [MIA] ANALISIS COMPLETO - Verificando lugares_mencionados:', {
           existe: 'lugares_mencionados' in data,
@@ -582,69 +530,18 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
           longitud: data.lugares_mencionados?.length
         });
         
+        // FILTRADO AUTOMÁTICO RESTAURADO - Los lugares mencionados activan filtros automáticamente
         if (Array.isArray(data.lugares_mencionados) && data.lugares_mencionados.length > 0) {
-          console.log('🎯 [MIA] ===== LUGARES MENCIONADOS RECIBIDOS =====');
-          console.log('🎯 [MIA] Lugares del backend:', data.lugares_mencionados);
-          console.log('🎯 [MIA] Cantidad:', data.lugares_mencionados.length);
-          console.log('🎯 [MIA] Detalles:', data.lugares_mencionados.map(l => ({
-            nombre: l,
-            normalizado: l?.toLowerCase()?.normalize('NFD')?.replace(/[\u0300-\u036f]/g, '')
-          })));
-          console.log('🎯 [MIA] ===== APLICANDO FILTRO =====');
-          
-          // Activar filtro por lugares mencionados
+          console.log('🎯 [MIA] Aplicando filtro automático para lugares mencionados:', data.lugares_mencionados);
           setMentionedPlacesFilter(data.lugares_mencionados);
-          console.log('🔍 [MIA] LLAMANDO setMentionedPlacesFilter con:', data.lugares_mencionados);
-          console.log('🔍 [MIA] NO usando onSetSearch para evitar interferencia con filtrado por lugares mencionados');
-          
-          // NOTA: No usamos onSetSearch aquí porque interfiere con el filtrado por lugares mencionados
-          // El filtrado se maneja completamente a través de setMentionedPlacesFilter y useFiltrosAvanzados
         } else {
-          console.log('🎯 [MIA] No se recibieron lugares mencionados del backend');
-        }
-        
-        // 2) Solo aplicar filtros automáticos si no hay lugares mencionados
-        if (!Array.isArray(data.lugares_mencionados) || data.lugares_mencionados.length === 0) {
-          // Limpiar lugares mencionados si no los hay en esta respuesta
+          console.log('🎯 [MIA] No hay lugares mencionados, limpiando filtros automáticos');
           clearMentionedPlacesFilter();
-          
-          if (!manualState.isActive) {
-            // Categorías detectadas - ahora maneja múltiples
-            if (data.categories && Array.isArray(data.categories) && data.categories.length > 0 && typeof onSetCategory === 'function') {
-              const frontendCats = data.categories.map(cat => mapBackendToFrontend(cat));
-              // Si hay múltiples categorías, usar onToggleCategory para cada una
-              if (frontendCats.length > 1 && typeof onToggleCategory === 'function') {
-                // Primero limpiar filtros si es necesario
-                if (typeof onClearFilters === 'function') {
-                  onClearFilters();
-                }
-                // Luego agregar cada categoría
-                frontendCats.forEach(cat => {
-                  if (cat) onToggleCategory(cat);
-                });
-              } else if (frontendCats.length === 1) {
-                // Si es solo una categoría, usar el método original
-                onSetCategory(frontendCats[0]);
-              }
-            } else if (data.category && typeof onSetCategory === 'function') {
-              // Compatibilidad con respuestas antiguas
-              const frontendCat = mapBackendToFrontend(data.category);
-              onSetCategory(frontendCat);
-            }
-          }
-          
-          // Lugar específico detectado => usar como búsqueda (permitido siempre)
-          const placeName = data.place_name;
-          if (placeName && typeof onSetSearch === 'function') {
-            onSetSearch(placeName);
-          }
         }
         
-        // 3) Limpiar filtros si se detecta esa intención (siempre permitido)
         if (data.clear_filters && typeof onClearFilters === 'function') {
           onClearFilters();
           clearMentionedPlacesFilter();
-          // También limpiar filtro manual si está activo
           if (manualState.isActive) {
             globalFilterState.clearManualFilter();
           }
@@ -653,7 +550,6 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
         console.warn('No se pudieron sincronizar filtros con la app:', syncErr);
       }
 
-      // Si el backend envía lugares sugeridos, agregamos tarjetas con imágenes (y también botones rápidos)
       if (Array.isArray(data.places) && data.places.length > 0) {
         const escapeHtml = (s) => (s || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const escAttr = (s) => (s || '').toString().replace(/'/g, '&#39;').replace(/"/g, '&quot;');
@@ -686,7 +582,6 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
           generatedText += gallery;
         }
 
-        // Sugerencias rápidas basadas en lugares
         const quickSuggestions =
           '<div class="quick-suggestions">' +
           data.places
@@ -702,75 +597,63 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
           generatedText += quickSuggestions;
         }
       } else {
-        // Sugerencias por defecto adaptadas al estado del filtro manual
         const manualState = globalFilterState.getState();
-        let defaultSuggestions;
+        const filterSuggestions = {
+          'parques': [
+            { text: 'Parque de la Identidad', emoji: '🌳' },
+            { text: 'Parque Huancayo', emoji: '🌲' },
+            { text: 'Cerrito de la Libertad', emoji: '⛰️' }
+          ],
+          'monumentos': [
+            { text: 'Torre Torre', emoji: '🏛️' },
+            { text: 'Catedral de Huancayo', emoji: '⛪' },
+            { text: 'Plaza Constitución', emoji: '🏛️' }
+          ],
+          'restaurantes': [
+            { text: 'Papa a la Huancaína', emoji: '🍽️' },
+            { text: 'Restaurantes típicos', emoji: '🥘' },
+            { text: 'Comida regional', emoji: '🍲' }
+          ],
+          'museos': [
+            { text: 'Museo Salesiano', emoji: '🎨' },
+            { text: 'Casa del Artesano', emoji: '🏺' },
+            { text: 'Cultura Wanka', emoji: '🏛️' }
+          ],
+          'hoteles': [
+            { text: 'Hoteles céntricos', emoji: '🏨' },
+            { text: 'Hospedajes económicos', emoji: '🛏️' },
+            { text: 'Alojamiento turístico', emoji: '🏠' }
+          ]
+        };
         
-        if (manualState.isActive && manualState.currentFilter !== 'todos') {
-          // Sugerencias específicas para el filtro manual activo
-          const filterSuggestions = {
-            'parques': [
-              { text: 'Parque de la Identidad', emoji: '🌳' },
-              { text: 'Parque Huancayo', emoji: '🌲' },
-              { text: 'Cerrito de la Libertad', emoji: '⛰️' }
-            ],
-            'monumentos': [
-              { text: 'Torre Torre', emoji: '🏛️' },
-              { text: 'Catedral de Huancayo', emoji: '⛪' },
-              { text: 'Plaza Constitución', emoji: '🏛️' }
-            ],
-            'restaurantes': [
-              { text: 'Papa a la Huancaína', emoji: '🍽️' },
-              { text: 'Restaurantes típicos', emoji: '🥘' },
-              { text: 'Comida regional', emoji: '🍲' }
-            ],
-            'museos': [
-              { text: 'Museo Salesiano', emoji: '🎨' },
-              { text: 'Casa del Artesano', emoji: '🏺' },
-              { text: 'Cultura Wanka', emoji: '🏛️' }
-            ],
-            'hoteles': [
-              { text: 'Hoteles céntricos', emoji: '🏨' },
-              { text: 'Hospedajes económicos', emoji: '🛏️' },
-              { text: 'Alojamiento turístico', emoji: '🏠' }
-            ]
-          };
-          
-          const suggestions = filterSuggestions[manualState.currentFilter] || [];
-          defaultSuggestions = '<div class="quick-suggestions">' +
-            suggestions.map(s => `<button onclick="sendQuickMessage('${s.text}')">${s.emoji} ${s.text}</button>`).join('') +
-            '</div>';
-        } else {
-          // Sugerencias generales
-          defaultSuggestions =
-            '<div class="quick-suggestions">' +
-            "<button onclick=\"sendQuickMessage('Monumentos')\">🏛️ Monumentos</button>" +
-            "<button onclick=\"sendQuickMessage('Restaurantes')\">🍽️ Restaurantes</button>" +
-            "<button onclick=\"sendQuickMessage('Museos')\">🎨 Museos</button>" +
-            "<button onclick=\"sendQuickMessage('Parques')\">🌳 Parques</button>" +
-            '</div>';
-        }
+        const suggestions = manualState.isActive && manualState.currentFilter !== 'todos'
+          ? filterSuggestions[manualState.currentFilter] || []
+          : [
+              { text: 'Monumentos', emoji: '🏛️' },
+              { text: 'Restaurantes', emoji: '🍽️' },
+              { text: 'Museos', emoji: '🎨' },
+              { text: 'Parques', emoji: '🌳' }
+            ];
+        
+        const defaultSuggestions = '<div class="quick-suggestions">' +
+          suggestions.map(s => `<button onclick="sendQuickMessage('${s.text}')">${s.emoji} ${s.text}</button>`).join('') +
+          '</div>';
         
         if (!generatedText.includes('quick-suggestions')) {
           generatedText += defaultSuggestions;
         }
       }
 
-      // Guardar en caché y memoria local (frontend)
       if (generatedText) {
         miaApi.cacheResponse(userMessage, generatedText);
         miaApi.saveToMemory(userMessage, generatedText);
       }
 
-      // Agregar respuesta del asistente
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: generatedText,
-          timestamp: new Date()
-        }
-      ]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: generatedText,
+        timestamp: new Date()
+      }]);
     } catch (error) {
       console.error('Error al obtener respuesta del backend:', error);
       const fallbackResponse =
@@ -790,194 +673,115 @@ const Mia = ({ isOpen, setIsOpen, onSetCategory, onSetSearch, currentFilters, on
   };
 
   return (
-    <>
+    <div className="relative">
       {/* Estilos CSS */}
       <MiaStyles />
       
       {/* Botón flotante */}
-      <div className={`fixed bottom-6 z-30 ${
-        isOpen ? 'right-6 sm:right-96' : 'right-6'
-      }`}>
-        <div className="relative">
-          {/* Indicador de filtro manual activo o lugares mencionados */}
-          {(manualFilterState.isActive || (manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0)) && (
-            <div className="absolute -top-2 -right-2 z-10">
-              <div className={`text-white text-xs px-2 py-1 rounded-full shadow-lg animate-pulse ${
-                manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0
-                  ? 'bg-gradient-to-r from-green-400 to-green-500'
-                  : 'bg-gradient-to-r from-orange-400 to-orange-500'
-              }`}>
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                  {manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0
-                    ? `${manualFilterState.mentionedPlaces.length} lugar${manualFilterState.mentionedPlaces.length > 1 ? 'es' : ''}`
-                    : 'Filtro'
-                  }
-                </div>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => {
-              console.log('🔘 [MIA] Botón flotante clickeado, isOpen actual:', isOpen);
-              setIsOpen(!isOpen);
-            }}
-            className={`bg-gradient-to-r text-white p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-110 mia-floating-button ${
-              manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0
-                ? 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 animate-pulse'
-                : manualFilterState.isActive 
-                  ? 'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 animate-pulse'
-                  : 'from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-            }`}
-            style={{
-              boxShadow: manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0
-                ? '0 4px 15px rgba(34, 197, 94, 0.4)'
-                : manualFilterState.isActive 
-                  ? '0 4px 15px rgba(249, 115, 22, 0.4)'
-                  : '0 4px 15px rgba(102, 126, 234, 0.4)'
-            }}
-            title={isOpen ? "Cerrar asistente MIA" : "Abrir asistente MIA"}
-          >
-        {isOpen ? (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-        )}
-          </button>
-        </div>
-      </div>
+      <button 
+        onClick={() => {
+          console.log('🔘 [MIA] Botón flotante clickeado, isOpen actual:', isOpen);
+          setIsOpen(true);
+        }}
+        className="fixed bottom-7 right-3 w-16 h-16 bg-black rounded-full shadow-xl transition-all duration-300 z-50 flex items-center justify-center group hover:scale-110 hover:shadow-2xl" 
+        style={{ boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }}
+        title="Abrir asistente MIA"
+      > 
+        <img 
+          src="/logo/memoria_logo.svg" 
+          alt="Logo Memoria" 
+          className="w-10 h-10 object-contain" 
+        /> 
+      </button> 
 
-      {/* Panel lateral del chat */}
-      {isOpen && (
-        <div className="fixed top-0 right-0 h-full w-full sm:w-80 bg-white shadow-2xl z-40 flex flex-col mia-chat-modal pointer-events-auto border-l border-gray-200">
-          {/* Overlay para móvil */}
-          <div className="lg:hidden fixed inset-0 bg-black bg-opacity-30 z-30 pointer-events-auto" onClick={() => setIsOpen(false)} />
-          {/* Panel de chat */}
-          <div className="relative h-full w-full bg-white flex flex-col z-40">
-            {/* Header */}
-            <div className={`flex items-center justify-between p-4 border-b border-gray-200 text-white transition-all duration-300 ${
-              manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0
-                ? 'bg-gradient-to-r from-green-500 to-green-600'
-                : manualFilterState.isActive 
-                  ? 'bg-gradient-to-r from-orange-500 to-orange-600'
-                  : 'bg-gradient-to-r from-blue-600 to-purple-600'
-            }`}>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                  <span className="text-lg">🇵🇪</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold">MIA - Asistente de Huancayo</h3>
-                  <p className="text-xs opacity-90">
-                    {manualFilterState.isActive 
-                      ? `Filtro: ${globalFilterState.getDynamicTitle().replace('Lugares Destacados', 'General')}`
-                      : manualFilterState.mentionedPlaces && manualFilterState.mentionedPlaces.length > 0
-                        ? `${manualFilterState.mentionedPlaces.length} lugar${manualFilterState.mentionedPlaces.length > 1 ? 'es' : ''} mencionado${manualFilterState.mentionedPlaces.length > 1 ? 's' : ''}`
-                        : 'Tu guía turística personal'
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {manualFilterState.isActive && (
-                  <div className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs animate-pulse">
-                    Filtro activo
-                  </div>
-                )}
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="text-white hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-                  title="Cerrar chat"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+      {/* Modal del chat */}
+      {isOpen && ( 
+        <div 
+          className="fixed bottom-7 right-3 w-80 h-96 bg-white rounded-xl shadow-2xl z-50 flex flex-col transform transition-all duration-300 scale-100" 
+          style={{ boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }} 
+        > 
+          {/* Header del modal */} 
+          <div className="bg-black text-white px-4 py-3 rounded-t-xl flex items-center justify-between"> 
+            <h2 className="text-lg font-semibold">MIA</h2> 
+            <button 
+              onClick={() => setIsOpen(false)} 
+              className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors" 
+            > 
+              ✕ 
+            </button> 
+          </div> 
 
-            {/* Mensajes */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs px-4 py-2 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
-                    }`}
-                  >
+          {/* Contenedor de mensajes */} 
+          <div className="flex-1 p-4 overflow-y-auto bg-white"> 
+            <div className="space-y-3"> 
+              {messages.map((message, index) => ( 
+                <div 
+                  key={index} 
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`} 
+                > 
+                  <div 
+                    className={` 
+                      max-w-xs px-4 py-2 rounded-2xl text-sm 
+                      ${message.role === 'user' 
+                        ? 'bg-black text-white rounded-br-md' 
+                        : 'bg-gray-100 text-black border border-gray-200 rounded-bl-md' 
+                      } 
+                    `} 
+                  > 
                     <div 
                       className="mia-message-content"
                       dangerouslySetInnerHTML={{ 
                         __html: message.content.replace(/\n/g, '<br/>') 
                       }}
                     />
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white text-gray-800 border border-gray-200 px-4 py-2 rounded-lg shadow-sm">
-                    <div className="mia-loading-dots">
-                      <div></div>
-                      <div></div>
-                      <div></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                  </div> 
+                </div> 
+              ))} 
+              {isLoading && ( 
+                <div className="flex justify-start"> 
+                  <div className="max-w-xs px-4 py-2 rounded-2xl text-sm bg-gray-100 text-black border border-gray-200 rounded-bl-md"> 
+                    <span className="italic">MIA está escribiendo...</span> 
+                  </div> 
+                </div> 
+              )} 
+              <div ref={messagesEndRef} /> 
+            </div> 
+          </div> 
 
-            {/* Input */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 bg-white">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  placeholder="Escribe tu mensaje..."
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Enviar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </>
+          {/* Input para escribir mensajes */} 
+          <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl"> 
+            <div className="flex items-end space-x-3"> 
+              <input 
+                type="text" 
+                value={inputMessage} 
+                onChange={(e) => setInputMessage(e.target.value)} 
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                }} 
+                placeholder="Escribe tu mensaje..." 
+                className="flex-1 border-2 border-gray-200 rounded-2xl px-4 py-2 focus:border-black focus:outline-none transition-colors text-sm" 
+                disabled={isLoading} 
+              /> 
+              <button 
+                onClick={handleSendMessage} 
+                disabled={isLoading || inputMessage.trim() === ''} 
+                className="bg-black text-white p-2 rounded-full hover:bg-gray-800 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" 
+              > 
+                ➤ 
+              </button> 
+            </div> 
+          </div> 
+        </div> 
+      )} 
+    </div>
   );
 };
 
 
 
-// Función de prueba temporal para simular filtrado
-window.testMiaFiltering = function(lugaresAProbar = ["Parque Constitución", "parques", "Parque de la Identidad"]) {
-  console.log('🧪 [PRUEBA MIA] === INICIANDO PRUEBA DE FILTRADO ===');
-  console.log('🧪 [PRUEBA MIA] Lugares a probar:', lugaresAProbar);
-  
-  // Importar la función desde globalState
-  import('../utils/globalState').then(({ setMentionedPlacesFilter }) => {
-    console.log('🧪 [PRUEBA MIA] Aplicando filtro con lugares mencionados...');
-    setMentionedPlacesFilter(lugaresAProbar);
-    console.log('🧪 [PRUEBA MIA] Filtro aplicado. Revisa los logs del hook useFiltrosAvanzados.');
-  }).catch(err => {
-    console.error('🧪 [PRUEBA MIA] Error al importar globalState:', err);
-  });
-};
+
 
 export default Mia;

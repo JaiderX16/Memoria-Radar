@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Menu, X, Plus, Trash2, ChevronDown, Building, Utensils, Camera, TreePine, Landmark } from 'lucide-react';
+import { MapPin, Menu, X, Plus, Building, Utensils, Camera, TreePine, Landmark, Trash2 } from 'lucide-react';
 import { categorias } from '../data/categorias';
 import FiltrosAvanzados from './FiltrosAvanzados';
 import { globalFilterState, setMentionedPlacesFilter, clearMentionedPlacesFilter } from '../utils/globalState';
@@ -25,70 +25,63 @@ const Sidebar = ({
   onToggleCategory
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [activeManualFilter, setActiveManualFilter] = useState(() => globalFilterState.getState().currentFilter);
-  const [isManualFilterActive, setIsManualFilterActive] = useState(() => globalFilterState.getState().isActive);
-  const [dynamicTitle, setDynamicTitle] = useState(() => globalFilterState.getDynamicTitle());
-  const [mentionedPlaces, setMentionedPlaces] = useState(() => globalFilterState.getState().mentionedPlaces);
-  const [filterByMentionedPlaces, setFilterByMentionedPlaces] = useState(() => globalFilterState.getState().filterByMentionedPlaces);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [manualFilterActive, setManualFilterActive] = useState(false);
+  const [currentManualFilter, setCurrentManualFilter] = useState('todos');
+  const [mentionedPlaces, setMentionedPlaces] = useState([]);
+  const [filterByMentionedPlaces, setFilterByMentionedPlaces] = useState(false);
   const dropdownRef = React.useRef(null);
   
-  // Configuración de filtros manuales con iconos
   const manualFilters = [
-    { id: 'todos', label: 'Todos', icon: MapPin, color: 'bg-gray-500' },
-    { id: 'parques', label: 'Parques', icon: TreePine, color: 'bg-green-500' },
-    { id: 'monumentos', label: 'Patrimonio', icon: Landmark, color: 'bg-amber-500' },
-    { id: 'restaurantes', label: 'Restaurantes', icon: Utensils, color: 'bg-red-500' },
-    { id: 'museos', label: 'Museos', icon: Camera, color: 'bg-purple-500' },
-    { id: 'hoteles', label: 'Hoteles', icon: Building, color: 'bg-blue-500' }
+    { id: 'todos', label: 'Todos los lugares', icon: MapPin, color: 'text-gray-600' },
+    { id: 'parques', label: 'Parques', icon: TreePine, color: 'text-green-600' },
+    { id: 'monumentos', label: 'Monumentos', icon: Landmark, color: 'text-amber-600' },
+    { id: 'restaurantes', label: 'Restaurantes', icon: Utensils, color: 'text-red-600' },
+    { id: 'hoteles', label: 'Hoteles', icon: Building, color: 'text-blue-600' },
+    { id: 'museos', label: 'Museos', icon: Camera, color: 'text-purple-600' }
   ];
   
-  // Función de filtrado manual usando el estado global
-  const filterManual = (category) => {
-    const currentState = globalFilterState.getState();
-    const newFilter = category === currentState.currentFilter ? 'todos' : category;
+  const filterManual = (filterId) => {
+    console.log('🎯 [SIDEBAR] Aplicando filtro manual:', filterId);
     
-    // Actualizar el estado global
-    globalFilterState.setManualFilter(newFilter);
-    
-    if (newFilter === 'todos') {
-      // Mostrar todos los lugares
-      onClearFilters();
+    if (filterId === 'todos') {
+      setManualFilterActive(false);
+      setCurrentManualFilter('todos');
+      globalFilterState.clearManualFilter();
+      console.log('🎯 [SIDEBAR] Filtro manual limpiado - mostrando todos los lugares');
     } else {
-      // Aplicar filtro de categoría específica
-      if (setSelectedCategories) {
-        setSelectedCategories([newFilter]);
-      }
+      setManualFilterActive(true);
+      setCurrentManualFilter(filterId);
+      globalFilterState.setManualFilter(filterId);
+      console.log('🎯 [SIDEBAR] Filtro manual aplicado:', filterId);
     }
   };
   
-  // Suscribirse a cambios en el estado global del filtro
   useEffect(() => {
-    const unsubscribe = globalFilterState.subscribe((newState) => {
-      console.log('📋 [SIDEBAR] Cambio en estado global detectado:', newState);
-      setActiveManualFilter(newState.currentFilter);
-      setIsManualFilterActive(newState.isActive);
-      setDynamicTitle(globalFilterState.getDynamicTitle());
-      setMentionedPlaces(newState.mentionedPlaces);
-      setFilterByMentionedPlaces(newState.filterByMentionedPlaces);
-      console.log('📋 [SIDEBAR] Estado local actualizado:', {
-        activeManualFilter: newState.currentFilter,
-        mentionedPlaces: newState.mentionedPlaces,
-        filterByMentionedPlaces: newState.filterByMentionedPlaces
-      });
+    const unsubscribe = globalFilterState.subscribe((state) => {
+      console.log('🔄 [SIDEBAR] Estado global actualizado:', state);
+      setMentionedPlaces(state.mentionedPlaces || []);
+      setFilterByMentionedPlaces(state.filterByMentionedPlaces || false);
+      setManualFilterActive(state.manualFilterActive || false);
+      setCurrentManualFilter(state.currentManualFilter || 'todos');
     });
-    
+
     return unsubscribe;
   }, []);
 
-  // DEBUG: Log de lugares filtrados recibidos como prop
   useEffect(() => {
-    console.log('📋 [SIDEBAR] ===== LUGARES FILTRADOS RECIBIDOS =====');
-    console.log('📋 [SIDEBAR] Total lugares:', filteredLugares?.length || 0);
-    console.log('📋 [SIDEBAR] Nombres lugares:', filteredLugares?.map(l => l.nombre) || []);
-    console.log('📋 [SIDEBAR] filterByMentionedPlaces:', filterByMentionedPlaces);
-    console.log('📋 [SIDEBAR] mentionedPlaces:', mentionedPlaces);
-    console.log('📋 [SIDEBAR] ===== FIN LUGARES FILTRADOS =====');
-  }, [filteredLugares, filterByMentionedPlaces, mentionedPlaces]);
+    console.log('📊 [SIDEBAR] Lugares filtrados actualizados:', {
+      total: filteredLugares.length,
+      lugares: filteredLugares.map(l => `${l.nombre} (${l.categoria})`),
+      mentionedPlaces,
+      filterByMentionedPlaces,
+      manualFilterActive,
+      currentManualFilter
+    });
+  }, [filteredLugares, mentionedPlaces, filterByMentionedPlaces, manualFilterActive, currentManualFilter]);
+  
+  const isManualFilterActive = manualFilterActive;
+  const activeManualFilter = currentManualFilter;
   
   // Función para obtener el título dinámico MEJORADO
   const getDynamicTitle = () => {
