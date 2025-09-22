@@ -202,7 +202,12 @@ const LugarMarker = ({ lugar, getDirectionsTo, userLocation, routing }) => {
   );
 };
 
-const Mapa = ({ lugares, selectedLugar, onMapClick, isAddingMode }) => {
+const Mapa = ({ lugares, onLugarClick, selectedLugar, onMapClick, isAddingMode }) => {
+  // Log para verificar lugares recibidos
+  console.log('🗺️ [MAPA] Lugares recibidos:', lugares?.length || 0);
+  if (lugares?.length > 0) {
+    console.log('🗺️ [MAPA] Nombres de lugares:', lugares.map(l => l.nombre));
+  }
   const mapRef = useRef();
   const [userLocation, setUserLocation] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
