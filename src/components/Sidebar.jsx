@@ -1,433 +1,381 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Menu, X, Plus, Building, Utensils, Camera, TreePine, Landmark, Trash2 } from 'lucide-react';
-import { categorias } from '../data/categorias';
-import FiltrosAvanzados from './FiltrosAvanzados';
-import { globalFilterState, setMentionedPlacesFilter, clearMentionedPlacesFilter } from '../utils/globalState';
+import React, { useState } from 'react';
+import {
+  Search, X, Star, MapPin, Navigation, Phone,
+  Globe, MoreHorizontal, Menu, Plus, Trash2,
+  Ticket, Clock
+} from 'lucide-react';
 
-const Sidebar = ({ 
-  lugares, 
-  filteredLugares, 
-  searchTerm, 
-  setSearchTerm, 
-  selectedCategories,
-  setSelectedCategories,
-  sortBy,
-  setSortBy,
-  sortOrder,
-  setSortOrder,
-  filterStats,
-  onLugarClick, 
-  isOpen, 
+// DATOS DE PRUEBA
+const MOCK_PLACES = [
+  {
+    id: 1,
+    nombre: "Café Central",
+    rating: 4.8,
+    categoria: "Cafetería",
+    descripcion: "Café acogedor con especialidad en espresso",
+    imagen: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=400&auto=format&fit=crop",
+    horario: "Lun-Dom: 7:00 - 22:00"
+  },
+  {
+    id: 2,
+    nombre: "Grand Vista Hotel",
+    rating: 4.5,
+    categoria: "Hotel",
+    descripcion: "Hotel boutique con vistas panorámicas",
+    imagen: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=400&auto=format&fit=crop",
+    horario: "24 horas"
+  },
+  {
+    id: 3,
+    nombre: "Parque del Retiro",
+    rating: 4.9,
+    categoria: "Parque",
+    descripcion: "Hermoso parque público con jardines",
+    imagen: "https://images.unsplash.com/photo-1576082869502-d7b38df3743e?q=80&w=400&auto=format&fit=crop",
+    horario: "6:00 - 22:00"
+  },
+  {
+    id: 4,
+    nombre: "Restaurante La Plaza",
+    rating: 4.7,
+    categoria: "Restaurante",
+    descripcion: "Cocina tradicional con ingredientes frescos",
+    imagen: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=400&auto=format&fit=crop",
+    horario: "12:00 - 23:00"
+  },
+  {
+    id: 5,
+    nombre: "Museo de Arte",
+    rating: 4.6,
+    categoria: "Museo",
+    descripcion: "Colección de arte contemporáneo y clásico",
+    imagen: "https://images.unsplash.com/photo-1566127444979-b2e871d3bef8?q=80&w=400&auto=format&fit=crop",
+    horario: "Mar-Dom: 10:00 - 19:00"
+  }
+];
+
+const EVENTOS_DESTACADOS = [
+  {
+    id: 101,
+    title: "Noche de Jazz",
+    date: "Hoy, 20:00",
+    location: "Café Central",
+    image: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=300&auto=format&fit=crop"
+  },
+  {
+    id: 102,
+    title: "Feria de Diseño",
+    date: "Mañana",
+    location: "Matadero",
+    image: "https://images.unsplash.com/photo-1531058020387-3be344556be6?q=80&w=300&auto=format&fit=crop"
+  },
+  {
+    id: 103,
+    title: "Ruta de Tapas",
+    date: "Sáb, 13:00",
+    location: "Centro",
+    image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=300&auto=format&fit=crop"
+  },
+  {
+    id: 104,
+    title: "Cine de Verano",
+    date: "Dom, 21:00",
+    location: "Parque Retiro",
+    image: "https://images.unsplash.com/photo-1517604931442-710e8b6b0606?q=80&w=300&auto=format&fit=crop"
+  }
+];
+
+const RatingBadge = ({ rating }) => (
+  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-md self-start">
+    <Star size={12} className="fill-yellow-500 text-yellow-500" />
+    <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">{rating || 4.5}</span>
+  </div>
+);
+
+const ActionButton = ({ icon, label, primary }) => (
+  <button className={`
+    flex flex-col items-center justify-center gap-2 w-full py-3 rounded-xl transition-all duration-200
+    ${primary
+      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 hover:bg-blue-700'
+      : 'bg-gray-50 dark:bg-white/5 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-white/10'}
+  `}>
+    {React.cloneElement(icon, { size: 20 })}
+    <span className="text-xs font-medium">{label}</span>
+  </button>
+);
+
+const Sidebar = ({
+  lugares = [],
+  filteredLugares = [],
+  searchTerm = "",
+  setSearchTerm,
+  onLugarClick,
+  isOpen = true,
   setIsOpen,
   onAddLugar,
-  onDeleteLugar,
-  onClearFilters,
-  onToggleCategory
+  onDeleteLugar
 }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [manualFilterActive, setManualFilterActive] = useState(false);
-  const [currentManualFilter, setCurrentManualFilter] = useState('todos');
-  const [mentionedPlaces, setMentionedPlaces] = useState([]);
-  const [filterByMentionedPlaces, setFilterByMentionedPlaces] = useState(false);
-  const dropdownRef = React.useRef(null);
-  
-  const manualFilters = [
-    { id: 'todos', label: 'Todos los lugares', icon: MapPin, color: 'text-gray-600' },
-    { id: 'parques', label: 'Parques', icon: TreePine, color: 'text-green-600' },
-    { id: 'monumentos', label: 'Monumentos', icon: Landmark, color: 'text-amber-600' },
-    { id: 'restaurantes', label: 'Restaurantes', icon: Utensils, color: 'text-red-600' },
-    { id: 'hoteles', label: 'Hoteles', icon: Building, color: 'text-blue-600' },
-    { id: 'museos', label: 'Museos', icon: Camera, color: 'text-purple-600' }
-  ];
-  
-  const filterManual = (filterId) => {
-    console.log('🎯 [SIDEBAR] Aplicando filtro manual:', filterId);
-    
-    if (filterId === 'todos') {
-      setManualFilterActive(false);
-      setCurrentManualFilter('todos');
-      globalFilterState.clearManualFilter();
-      console.log('🎯 [SIDEBAR] Filtro manual limpiado - mostrando todos los lugares');
-    } else {
-      setManualFilterActive(true);
-      setCurrentManualFilter(filterId);
-      globalFilterState.setManualFilter(filterId);
-      console.log('🎯 [SIDEBAR] Filtro manual aplicado:', filterId);
-    }
-  };
-  
-  useEffect(() => {
-    const unsubscribe = globalFilterState.subscribe((state) => {
-      console.log('🔄 [SIDEBAR] Estado global actualizado:', state);
-      setMentionedPlaces(state.mentionedPlaces || []);
-      setFilterByMentionedPlaces(state.filterByMentionedPlaces || false);
-      setManualFilterActive(state.manualFilterActive || false);
-      setCurrentManualFilter(state.currentManualFilter || 'todos');
-    });
+  const [localSearch, setLocalSearch] = useState("");
+  const [selectedPlace, setSelectedPlace] = useState(null);
 
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    console.log('📊 [SIDEBAR] Lugares filtrados actualizados:', {
-      total: filteredLugares.length,
-      lugares: filteredLugares.map(l => `${l.nombre} (${l.categoria})`),
-      mentionedPlaces,
-      filterByMentionedPlaces,
-      manualFilterActive,
-      currentManualFilter
-    });
-  }, [filteredLugares, mentionedPlaces, filterByMentionedPlaces, manualFilterActive, currentManualFilter]);
-  
-  const isManualFilterActive = manualFilterActive;
-  const activeManualFilter = currentManualFilter;
-  
-  // Función para obtener el título dinámico MEJORADO
-  const getDynamicTitle = () => {
-    if (filterByMentionedPlaces && mentionedPlaces && mentionedPlaces.length > 0) {
-      return `🤖 Filtrado por MIA (${mentionedPlaces.length})`;
-    }
-    if (isManualFilterActive && activeManualFilter !== 'todos') {
-      const filter = manualFilters.find(f => f.id === activeManualFilter);
-      return `🎯 ${filter?.label || 'Filtrado'} en Huancayo`;
-    }
-    return '🗺️ Explorar Huancayo';
-  };
-  
+  // DEBUG: Ver cuando cambia isOpen
   React.useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  
-  const selectedCategoryData = selectedCategories.length === 1 
-    ? categorias.find(cat => cat.id === selectedCategories[0])
-    : null;
-  const displayText = selectedCategoryData 
-    ? selectedCategoryData.nombre 
-    : selectedCategories.length > 1 
-      ? `${selectedCategories.length} categorías`
-      : 'Todas las categorías';
+    console.log('🔄 isOpen cambió a:', isOpen);
+  }, [isOpen]);
+
+  const displayPlaces = filteredLugares.length > 0 ? filteredLugares : MOCK_PLACES;
+
+  const currentSearch = setSearchTerm ? searchTerm : localSearch;
+  const handleSearchChange = (value) => {
+    if (setSearchTerm) {
+      setSearchTerm(value);
+    } else {
+      setLocalSearch(value);
+    }
+  };
+
+  const handlePlaceClick = (lugar) => {
+    setSelectedPlace(lugar);
+    if (onLugarClick) onLugarClick(lugar);
+  };
+
   return (
     <>
-      {/* Mobile menu button - Minimalista */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-6 left-6 z-[9999] bg-white p-2.5 rounded-lg shadow-sm border border-gray-200 transition-colors"
-      >
-        {isOpen ? <X className="w-5 h-5 text-gray-600" /> : <Menu className="w-5 h-5 text-gray-600" />}
-      </button>
-
-      {/* Overlay for mobile */}
-      {isOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-70 z-[9998]"
-          onClick={() => setIsOpen(false)}
-        />
+      {/* Botón flotante para abrir cuando está cerrado */}
+      {!isOpen && (
+        <button
+          onClick={() => {
+            console.log('Abriendo sidebar');
+            setIsOpen && setIsOpen(true);
+          }}
+          className="fixed top-6 left-6 z-[9999] bg-white/90 dark:bg-black/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-white/20 hover:scale-110 transition-all duration-300"
+        >
+          <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+        </button>
       )}
 
-      {/* Sidebar */}
+      {/* SIDEBAR FLOTANTE PRINCIPAL */}
       <div className={`
-        fixed lg:relative top-0 left-0 h-full w-80 bg-white shadow-md z-[9999]
-        transform transition-transform duration-300 ease-in-out
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        border-r border-gray-200
+        absolute z-20 
+        transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
+        top-4 left-2 right-2 bottom-4 w-auto md:w-[380px] md:left-4 md:right-auto
+        flex flex-col 
+        rounded-3xl border 
+        bg-white/85 dark:bg-[#1C1C1E]/85 backdrop-blur-xl 
+        border-white/40 dark:border-white/5
+        shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]
+        ${selectedPlace ? '-translate-x-[20px] opacity-0 md:opacity-50 scale-95 pointer-events-none' : ''}
+        ${!isOpen ? '-translate-x-[120%]' : 'translate-x-0'}
       `}>
-        <div className="p-6 h-full flex flex-col">
-          {/* Header con título dinámico */}
-          <div className="border-b border-gray-200 bg-white">
-            {/* Banner PROMINENTE para filtrado por MIA */}
-            {filterByMentionedPlaces && mentionedPlaces.length > 0 && (
-              <div className="bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white p-4 shadow-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    <div className="bg-white bg-opacity-20 p-2 rounded-lg">
-                      <MapPin className="w-6 h-6 animate-pulse" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-bold text-base mb-1">
-                        🤖 MIA está filtrando lugares
-                      </div>
-                      <div className="text-sm opacity-95 mb-2">
-                        Mostrando {mentionedPlaces.length} lugar{mentionedPlaces.length > 1 ? 'es' : ''} mencionado{mentionedPlaces.length > 1 ? 's' : ''} en la conversación
-                      </div>
-                      {/* Lista PROMINENTE de lugares mencionados */}
-                      <div className="flex flex-wrap gap-2">
-                        {mentionedPlaces.map((place, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-3 py-1.5 bg-white bg-opacity-25 backdrop-blur-sm rounded-full text-sm font-semibold border border-white border-opacity-30"
-                          >
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {place}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => clearMentionedPlacesFilter()}
-                    className="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition-all duration-200 flex-shrink-0"
-                    title="Limpiar filtro de MIA"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold text-gray-900 tracking-tight transition-all duration-300">{getDynamicTitle()}</h1>
+
+        {/* Header */}
+        <div className="p-5 pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Explorar</h1>
+            <div className="flex items-center gap-2">
+              {onAddLugar && (
                 <button
                   onClick={onAddLugar}
-                  className="p-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
-                  title="Agregar nuevo lugar"
+                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+                  title="Agregar lugar"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus size={18} />
                 </button>
-              </div>
-              
-              {/* Indicadores MEJORADOS de filtros manuales */}
-              {!filterByMentionedPlaces && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {isManualFilterActive && (
-                    <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md">
-                      <MapPin className="w-4 h-4 mr-2 animate-bounce" />
-                      Filtro manual activo
-                      <div className="ml-2 w-2 h-2 bg-white rounded-full animate-ping"></div>
+              )}
+              <button
+                onClick={() => {
+                  console.log('CLICK EN X - Intentando cerrar sidebar');
+                  console.log('setIsOpen disponible:', !!setIsOpen);
+                  console.log('isOpen actual:', isOpen);
+                  if (setIsOpen) {
+                    setIsOpen(false);
+                    console.log('✅ setIsOpen(false) ejecutado');
+                  } else {
+                    console.error('❌ ERROR: setIsOpen no está definido!');
+                  }
+                }}
+                className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                title="Cerrar sidebar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+              <Search className="text-gray-400" size={18} />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={currentSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full bg-black/5 dark:bg-white/10 focus:bg-white dark:focus:bg-[#2C2C2E] 
+                         border-0 rounded-xl py-3 pl-10 pr-4 
+                         text-gray-800 dark:text-gray-100 placeholder-gray-500 
+                         outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+            />
+          </div>
+        </div>
+
+        {/* Contenido scrollable */}
+        <div className="flex-grow overflow-y-auto px-3 pb-4 no-scrollbar">
+
+          {/* Eventos Destacados */}
+          <div className="mb-6 mt-2">
+            <div className="flex items-center justify-between px-2 mb-3">
+              <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Ticket size={14} className="text-blue-500" />
+                Destacados
+              </h2>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-4 -mx-3 px-3 no-scrollbar">
+              {EVENTOS_DESTACADOS.map(event => (
+                <div key={event.id} className="relative w-28 h-40 flex-shrink-0 rounded-2xl overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition-all duration-300 border border-black/5 dark:border-white/5">
+                  <img src={event.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={event.title} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                  <div className="absolute top-2 left-2 bg-white/20 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] font-bold text-white border border-white/20">
+                    {event.date.split(',')[0]}
+                  </div>
+                  <div className="absolute bottom-3 left-2 right-2">
+                    <p className="text-[10px] font-medium text-blue-300 truncate">{event.location}</p>
+                    <p className="text-white text-xs font-bold leading-tight mt-0.5 line-clamp-2">{event.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Lugares */}
+          <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-2 mb-2">
+            Cerca de ti
+          </h2>
+
+          <div className="space-y-3">
+            {displayPlaces.map((lugar) => (
+              <div
+                key={lugar.id}
+                onClick={() => handlePlaceClick(lugar)}
+                className="group flex gap-3 p-3 rounded-2xl 
+                           bg-white/50 dark:bg-white/5 
+                           hover:bg-white dark:hover:bg-white/10
+                           border border-transparent hover:border-gray-100 dark:hover:border-white/5
+                           shadow-sm hover:shadow-md cursor-pointer transition-all duration-300 relative"
+              >
+                <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative bg-gray-200 dark:bg-gray-700">
+                  {lugar.imagen ? (
+                    <img src={lugar.imagen} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={lugar.nombre} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <MapPin className="w-8 h-8 text-gray-400" />
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Filtros manuales */}
-          <div className="py-4 border-b border-gray-100">
-            <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-              Filtros Rápidos
-              {(isManualFilterActive || filterByMentionedPlaces) && (
-                <span className={`ml-auto text-xs px-2 py-1 rounded-full ${
-                  filterByMentionedPlaces 
-                    ? 'bg-green-100 text-green-600'
-                    : 'bg-blue-100 text-blue-600'
-                }`}>
-                  {filterByMentionedPlaces ? 'Lugares mencionados' : '1 activo'}
-                </span>
-              )}
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {manualFilters.map((filter) => {
-                const IconComponent = filter.icon;
-                const isActive = activeManualFilter === filter.id;
-                return (
-                  <button
-                    key={filter.id}
-                    onClick={() => filterManual(filter.id)}
-                    className={`
-                      flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium relative overflow-hidden
-                      transition-all duration-300 transform hover:scale-105
-                      ${
-                        isActive
-                          ? `${filter.color} text-white shadow-lg border-2 border-opacity-50`
-                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                      }
-                    `}
-                  >
-                    {isActive && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 animate-pulse"></div>
-                    )}
-                    <IconComponent className={`w-4 h-4 ${isActive ? 'animate-bounce' : ''}`} />
-                    <span className="truncate">{filter.label}</span>
-                    {isActive && (
-                      <div className="ml-auto w-2 h-2 bg-white rounded-full animate-ping"></div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Search and Filters - solo mostrar si no hay filtro manual activo ni lugares mencionados */}
-          {!isManualFilterActive && !filterByMentionedPlaces && (
-            <div className="py-4 border-b border-gray-100">
-              <FiltrosAvanzados
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                selectedCategories={selectedCategories}
-                setSelectedCategories={setSelectedCategories}
-                filteredLugares={filteredLugares}
-                onClearFilters={onClearFilters}
-                isCompact={true}
-              />
-            </div>
-          )}
+                <div className="flex flex-col flex-grow min-w-0 justify-center">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate pr-2">{lugar.nombre}</h3>
+                    <RatingBadge rating={lugar.rating} />
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{lugar.categoria}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 line-clamp-2">{lugar.descripcion}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Disponible</span>
+                  </div>
+                </div>
 
-          {/* Results - Minimalista */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="py-4">
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  {filteredLugares?.length || 0} lugares encontrados
-                </p>
-                {/* Botón para limpiar filtro manual o lugares mencionados */}
-                {(isManualFilterActive || filterByMentionedPlaces) && (
+                {onDeleteLugar && (
                   <button
-                    onClick={() => filterByMentionedPlaces ? clearMentionedPlacesFilter() : filterManual('todos')}
-                    className={`text-xs underline ${
-                      filterByMentionedPlaces 
-                        ? 'text-green-600 hover:text-green-800'
-                        : 'text-blue-600 hover:text-blue-800'
-                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteLugar(lugar.id);
+                    }}
+                    className="absolute top-3 right-3 p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded-lg 
+                               text-red-600 opacity-0 group-hover:opacity-100 transition-all"
                   >
-                    Limpiar filtro
+                    <Trash2 size={14} />
                   </button>
                 )}
               </div>
-              
-              {/* Información PROMINENTE cuando MIA está filtrando */}
-              {filterByMentionedPlaces && mentionedPlaces.length > 0 && (
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4 mb-4 shadow-sm">
-                  <div className="flex items-center space-x-3 text-green-800 mb-2">
-                    <div className="bg-green-100 p-2 rounded-lg">
-                      <MapPin className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <span className="text-base font-bold">
-                        🤖 Resultados filtrados por MIA
-                      </span>
-                      <p className="text-sm text-green-700 mt-1">
-                        {filteredLugares.length > 0 
-                          ? `Encontrados ${filteredLugares.length} de ${mentionedPlaces.length} lugares mencionados`
-                          : `Los ${mentionedPlaces.length} lugares mencionados no están en la base de datos`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  {filteredLugares.length > 0 && (
-                    <div className="bg-white bg-opacity-60 rounded-lg p-2">
-                      <p className="text-xs text-green-600 font-medium">
-                        💡 Estos son los lugares que MIA mencionó y que están registrados en Huancayo
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                {filteredLugares.map((lugar) => (
-                  <div
-                    key={lugar.id}
-                    onClick={() => onLugarClick(lugar)}
-                    className="px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm truncate">{lugar.nombre}</h4>
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{lugar.descripcion}</p>
-                        <div className="mt-2">
-                          <span className="text-xs text-gray-400 capitalize">
-                            {lugar.categoria}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteLugar(lugar.id);
-                        }}
-                        className="ml-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-              {filteredLugares.length === 0 && (
-                <div className="text-center py-8">
-                  {filterByMentionedPlaces ? (
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl p-6">
-                      <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <MapPin className="w-8 h-8 text-orange-600" />
-                      </div>
-                      <h3 className="text-xl font-bold text-orange-900 mb-3">
-                        🤖 MIA mencionó lugares no registrados
-                      </h3>
-                      <div className="bg-white bg-opacity-70 rounded-lg p-4 mb-4">
-                        <p className="text-orange-800 font-medium mb-2">
-                          Lugares mencionados por MIA:
-                        </p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                          {mentionedPlaces.map((place, index) => (
-                            <span
-                              key={index}
-                              className="inline-flex items-center px-3 py-1 bg-orange-200 text-orange-800 rounded-full text-sm font-semibold"
-                            >
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {place}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-orange-700 mb-4">
-                        Estos lugares no están registrados en nuestra base de datos de Huancayo.
-                      </p>
-                      <button
-                        onClick={() => clearMentionedPlacesFilter()}
-                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 font-semibold shadow-lg"
-                      >
-                        <X className="w-5 h-5 mr-2" />
-                        Limpiar filtro de MIA
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        No hay lugares que mostrar
-                      </h3>
-                      <p className="text-gray-500 mb-4">
-                        {((searchTerm || selectedCategories.length > 0 || isManualFilterActive)
-                          ? 'No se encontraron lugares con los filtros aplicados.'
-                          : 'Aún no hay lugares registrados en esta zona.')}
-                      </p>
-                      {(isManualFilterActive || searchTerm || selectedCategories.length > 0) && (
-                        <button
-                          onClick={() => isManualFilterActive ? filterManual('todos') : onClearFilters()}
-                          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Limpiar filtros
-                        </button>
-                      )}
-                    </div>
-                  )}
+      {/* PANEL DE DETALLE */}
+      {selectedPlace && (
+        <div className={`
+          absolute z-30 flex flex-col 
+          transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
+          top-4 left-2 right-2 bottom-4 w-auto md:w-[380px] md:left-[420px] md:right-auto
+          rounded-3xl border 
+          bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-2xl
+          border-white/40 dark:border-white/5
+          shadow-[0_20px_60px_-10px_rgba(0,0,0,0.3)]
+        `}>
+          <button
+            onClick={() => setSelectedPlace(null)}
+            className="absolute top-4 right-4 z-10 p-2 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-full text-gray-500 dark:text-gray-200 transition-colors backdrop-blur-md"
+          >
+            <X size={20} />
+          </button>
+
+          <div className="relative h-56 w-full flex-shrink-0 rounded-t-3xl overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-10"></div>
+            {selectedPlace.imagen ? (
+              <img src={selectedPlace.imagen} className="w-full h-full object-cover" alt={selectedPlace.nombre} />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600"></div>
+            )}
+            <div className="absolute bottom-4 left-5 right-5 z-20 text-white">
+              <h1 className="text-3xl font-bold mb-1 tracking-tight">{selectedPlace.nombre}</h1>
+              <div className="flex items-center gap-2 text-white/90 text-sm font-medium">
+                <span>{selectedPlace.categoria}</span>
+                <div className="flex items-center bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-lg ml-2">
+                  <Star size={12} className="fill-white text-white mr-1" />
+                  <span>{selectedPlace.rating || 4.5}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-grow overflow-y-auto p-6">
+            <div className="grid grid-cols-4 gap-3 mb-8">
+              <ActionButton icon={<Navigation />} label="Ir" primary />
+              <ActionButton icon={<Phone />} label="Llamar" />
+              <ActionButton icon={<Globe />} label="Web" />
+              <ActionButton icon={<MoreHorizontal />} label="Más" />
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 flex gap-4 items-center">
+                <MapPin className="text-blue-500" size={24} />
+                <div>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium text-sm">{selectedPlace.descripcion || 'Información del lugar'}</p>
+                  <p className="text-gray-400 text-xs">A 2.5 km • 12 min en auto</p>
+                </div>
+              </div>
+              {selectedPlace.horario && (
+                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-white/5 flex gap-4 items-center">
+                  <Clock className="text-green-500" size={24} />
+                  <div>
+                    <p className="text-green-600 dark:text-green-400 font-medium text-sm">Abierto ahora</p>
+                    <p className="text-gray-400 text-xs">{selectedPlace.horario}</p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Footer - Minimalista */}
-          <div className="py-4 border-t border-gray-100">
-            <button
-              onClick={onAddLugar}
-              className="w-full bg-gray-900 text-white py-2.5 px-4 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2 text-sm font-medium"
-            >
-              <Plus size={16} />
-              <span>Nuevo lugar</span>
-            </button>
-          </div>
         </div>
-      </div>
+      )}
+
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </>
   );
 };

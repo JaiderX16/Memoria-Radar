@@ -1,3 +1,4 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -34,9 +35,11 @@
   0% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
+
   100% {
     opacity: 1;
   }
@@ -46,11 +49,14 @@
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
   padding: 4px;
-  max-width: 340px; /* evita que el contenido se desborde */
+  max-width: 340px;
+  /* evita que el contenido se desborde */
 }
+
 .leaflet-popup-content {
   margin: 6px 6px 8px 6px;
 }
+
 .leaflet-popup-tip {
   width: 14px;
   height: 8px;
@@ -62,6 +68,7 @@
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -77,20 +84,110 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
-}.animate-fade-out-down {
+}
+
+.animate-fade-out-down {
   animation: fade-out-down 0.3s ease-out forwards;
 }
 
 /* Ocultar scrollbar pero mantener funcionalidad de scroll */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
+/* MapLibre Popup Overrides for Custom Styling */
+.maplibregl-popup-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.maplibregl-popup-tip {
+  display: none !important;
+}
+
+/* Apple-like Spring Animations */
+.ease-spring {
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.animate-spring-in {
+  animation: spring-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes spring-in {
+  0% {
+    transform: scale(0.92) translateY(8px);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.02) translateY(-2px);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-right {
+  animation: slide-right 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes slide-right {
+  0% {
+    transform: translateX(-24px) scale(0.95);
+    opacity: 0;
+  }
+
+  60% {
+    transform: translateX(4px) scale(1.01);
+  }
+
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-expand-down {
+  animation: expand-down 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  overflow: hidden;
+}
+
+@keyframes expand-down {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  100% {
+    max-height: 200px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.transition-spring {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
