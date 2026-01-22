@@ -1,116 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, MapPin, Save, Image as ImageIcon, Type, AlignLeft, Tag, Palette, Globe, Upload } from 'lucide-react';
 
 // TODO: Obtener desde backend cuando esté integrado
-const categorias = ['parques', 'monumentos', 'restaurantes', 'museos', 'hoteles', 'mercados', 'playas', 'bares', 'discotecas'];
-const colores = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+const CATEGORIAS = ['parques', 'monumentos', 'restaurantes', 'museos', 'hoteles', 'mercados', 'playas', 'bares', 'discotecas'];
+const COLORES = [
+    { id: 'blue', nombre: 'Azul', hex: '#3b82f6' },
+    { id: 'red', nombre: 'Rojo', hex: '#ef4444' },
+    { id: 'green', nombre: 'Verde', hex: '#10b981' },
+    { id: 'amber', nombre: 'Ámbar', hex: '#f59e0b' },
+    { id: 'purple', nombre: 'Morado', hex: '#8b5cf6' },
+    { id: 'pink', nombre: 'Rosa', hex: '#ec4899' },
+    { id: 'cyan', nombre: 'Cian', hex: '#06b6d4' },
+    { id: 'lime', nombre: 'Lima', hex: '#84cc16' },
+    { id: 'orange', nombre: 'Naranja', hex: '#f97316' }
+];
+
+const INITIAL_FORM_STATE = {
+    nombre: '',
+    latitud: '',
+    longitud: '',
+    descripcion: '',
+    website: '',
+    categoria: 'monumentos',
+    color: 'blue'
+};
+
+// Estilos compartidos
+const INPUT_CLASSES = "w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all";
 
 const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
-    const [formData, setFormData] = useState({
-        nombre: '',
-        latitud: initialCoords?.lat || '',
-        longitud: initialCoords?.lng || '',
-        descripcion: '',
-        imagen: '',
-        website: '',
-        categoria: 'monumentos',
-        color: 'blue'
-    });
-
-    const [imageFile, setImageFile] = useState(null);
+    const [formData, setFormData] = useState(INITIAL_FORM_STATE);
     const [imagePreview, setImagePreview] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [errors, setErrors] = useState({});
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleImageDrop = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-
-        const files = e.dataTransfer?.files || e.target?.files;
-        if (files && files[0]) {
-            const file = files[0];
-            if (file.type.startsWith('image/')) {
-                setImageFile(file);
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setImagePreview(reader.result);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                alert('Por favor selecciona una imagen válida');
-            }
-        }
-    };
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
-    const removeImage = () => {
-        setImageFile(null);
-        setImagePreview(null);
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        if (!formData.nombre || !formData.descripcion) {
-            alert('Por favor, completa el nombre y la descripción');
-            return;
-        }
-
-        const lat = initialCoords?.lat || parseFloat(formData.latitud);
-        const lng = initialCoords?.lng || parseFloat(formData.longitud);
-
-        if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-            alert('Por favor, ingresa coordenadas válidas');
-            return;
-        }
-
-        const nuevoLugar = {
-            id: Date.now(),
-            nombre: formData.nombre,
-            latitud: lat,
-            longitud: lng,
-            descripcion: formData.descripcion,
-            imagen: imagePreview || 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=600',
-            website: formData.website,
-            categoria: formData.categoria,
-            color: formData.color
-        };
-
-        onSubmit(nuevoLugar);
-
-        setFormData({
-            nombre: '',
-            latitud: '',
-            longitud: '',
-            descripcion: '',
-            imagen: '',
-            website: '',
-            categoria: 'monumentos',
-            color: 'blue'
-        });
-        setImageFile(null);
-        setImagePreview(null);
-
-        onClose();
-    };
-
-    React.useEffect(() => {
+    // Actualizar coordenadas cuando cambian
+    useEffect(() => {
         if (initialCoords) {
             setFormData(prev => ({
                 ...prev,
@@ -119,6 +44,100 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
             }));
         }
     }, [initialCoords]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Limpiar error del campo cuando el usuario empieza a escribir
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
+        }
+    };
+
+    const handleImageDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        const files = e.dataTransfer?.files || e.target?.files;
+        if (files?.[0]) {
+            const file = files[0];
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onloadend = () => setImagePreview(reader.result);
+                reader.readAsDataURL(file);
+                setErrors(prev => ({ ...prev, imagen: '' }));
+            } else {
+                setErrors(prev => ({ ...prev, imagen: 'Por favor selecciona una imagen válida' }));
+            }
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.nombre.trim()) {
+            newErrors.nombre = 'El nombre es obligatorio';
+        }
+
+        if (!formData.descripcion.trim()) {
+            newErrors.descripcion = 'La descripción es obligatoria';
+        }
+
+        const lat = initialCoords?.lat || parseFloat(formData.latitud);
+        const lng = initialCoords?.lng || parseFloat(formData.longitud);
+
+        if (isNaN(lat) || lat < -90 || lat > 90) {
+            newErrors.latitud = 'Latitud inválida (-90 a 90)';
+        }
+
+        if (isNaN(lng) || lng < -180 || lng > 180) {
+            newErrors.longitud = 'Longitud inválida (-180 a 180)';
+        }
+
+        if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
+            newErrors.website = 'URL debe empezar con http:// o https://';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) return;
+
+        const lat = initialCoords?.lat || parseFloat(formData.latitud);
+        const lng = initialCoords?.lng || parseFloat(formData.longitud);
+        const colorHex = COLORES.find(c => c.id === formData.color)?.hex || '#3b82f6';
+
+        const nuevoLugar = {
+            id: Date.now(),
+            nombre: formData.nombre.trim(),
+            latitud: lat,
+            longitud: lng,
+            descripcion: formData.descripcion.trim(),
+            imagen: imagePreview || 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg?auto=compress&cs=tinysrgb&w=600',
+            website: formData.website.trim(),
+            categoria: formData.categoria,
+            color: colorHex
+        };
+
+        onSubmit(nuevoLugar);
+        resetForm();
+        onClose();
+    };
+
+    const resetForm = () => {
+        setFormData(INITIAL_FORM_STATE);
+        setImagePreview(null);
+        setErrors({});
+    };
+
+    const handleClose = () => {
+        resetForm();
+        onClose();
+    };
 
     if (!isOpen) return null;
 
@@ -134,14 +153,12 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                 <MapPin className="w-6 h-6 text-blue-400" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-white tracking-tight">
-                                    Nuevo Lugar
-                                </h2>
+                                <h2 className="text-2xl font-bold text-white tracking-tight">Nuevo Lugar</h2>
                                 <p className="text-zinc-500 text-sm font-medium">Completa los detalles del punto</p>
                             </div>
                         </div>
                         <button
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="p-2.5 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl transition-all border border-white/5"
                         >
                             <X className="w-5 h-5" />
@@ -163,10 +180,11 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                             name="nombre"
                             value={formData.nombre}
                             onChange={handleChange}
-                            className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all"
+                            className={INPUT_CLASSES}
                             placeholder="Ej: Mirador del Valle"
                             required
                         />
+                        {errors.nombre && <p className="text-red-400 text-xs ml-1">{errors.nombre}</p>}
                     </div>
 
                     {/* Coordenadas */}
@@ -180,10 +198,11 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                     value={formData.latitud}
                                     onChange={handleChange}
                                     step="any"
-                                    className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all"
-                                    placeholder="41.4036"
+                                    className={INPUT_CLASSES}
+                                    placeholder="-12.0464"
                                     required
                                 />
+                                {errors.latitud && <p className="text-red-400 text-xs ml-1">{errors.latitud}</p>}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-400 ml-1">Longitud</label>
@@ -193,10 +212,11 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                     value={formData.longitud}
                                     onChange={handleChange}
                                     step="any"
-                                    className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all"
-                                    placeholder="2.1744"
+                                    className={INPUT_CLASSES}
+                                    placeholder="-75.2043"
                                     required
                                 />
+                                {errors.longitud && <p className="text-red-400 text-xs ml-1">{errors.longitud}</p>}
                             </div>
                         </div>
                     ) : (
@@ -220,10 +240,11 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                             value={formData.descripcion}
                             onChange={handleChange}
                             rows="3"
-                            className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all resize-none"
+                            className={`${INPUT_CLASSES} resize-none`}
                             placeholder="Describe brevemente este lugar..."
                             required
                         />
+                        {errors.descripcion && <p className="text-red-400 text-xs ml-1">{errors.descripcion}</p>}
                     </div>
 
                     {/* Categoría y Color */}
@@ -233,23 +254,18 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                 <Tag size={14} className="text-blue-400" />
                                 Categoría
                             </label>
-                            <div className="relative">
-                                <select
-                                    name="categoria"
-                                    value={formData.categoria}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white outline-none transition-all appearance-none cursor-pointer"
-                                >
-                                    {categorias.map((cat) => (
-                                        <option key={cat.id} value={cat.id} className="bg-zinc-900 text-white">
-                                            {cat.nombre}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                    <Tag size={14} />
-                                </div>
-                            </div>
+                            <select
+                                name="categoria"
+                                value={formData.categoria}
+                                onChange={handleChange}
+                                className={`${INPUT_CLASSES} appearance-none cursor-pointer capitalize`}
+                            >
+                                {CATEGORIAS.map((cat) => (
+                                    <option key={cat} value={cat} className="bg-zinc-900 text-white capitalize">
+                                        {cat}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className="space-y-2">
@@ -257,59 +273,52 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                 <Palette size={14} className="text-blue-400" />
                                 Color
                             </label>
-                            <div className="relative">
-                                <select
-                                    name="color"
-                                    value={formData.color}
-                                    onChange={handleChange}
-                                    className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white outline-none transition-all appearance-none cursor-pointer"
-                                >
-                                    {colores.map((col) => (
-                                        <option key={col.id} value={col.id} className="bg-zinc-900 text-white">
-                                            {col.nombre}
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                    <Palette size={14} />
-                                </div>
-                            </div>
+                            <select
+                                name="color"
+                                value={formData.color}
+                                onChange={handleChange}
+                                className={`${INPUT_CLASSES} appearance-none cursor-pointer`}
+                            >
+                                {COLORES.map((col) => (
+                                    <option key={col.id} value={col.id} className="bg-zinc-900 text-white">
+                                        {col.nombre}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 
-                    {/* URL de la página web */}
+                    {/* Website */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-semibold text-zinc-400 ml-1">
                             <Globe size={14} className="text-blue-400" />
-                            URL de la página web
+                            URL de la página web (opcional)
                         </label>
                         <input
                             type="url"
                             name="website"
                             value={formData.website}
                             onChange={handleChange}
-                            className="w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all"
+                            className={INPUT_CLASSES}
                             placeholder="https://ejemplo.com"
                         />
+                        {errors.website && <p className="text-red-400 text-xs ml-1">{errors.website}</p>}
                     </div>
 
                     {/* Drag & Drop para Imagen */}
                     <div className="space-y-2">
                         <label className="flex items-center gap-2 text-sm font-semibold text-zinc-400 ml-1">
                             <ImageIcon size={14} className="text-blue-400" />
-                            Imagen del lugar
+                            Imagen del lugar (opcional)
                         </label>
 
                         {!imagePreview ? (
                             <div
                                 onDrop={handleImageDrop}
-                                onDragOver={handleDragOver}
-                                onDragLeave={handleDragLeave}
+                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
                                 className={`relative border-2 border-dashed rounded-2xl p-8 transition-all cursor-pointer
-                  ${isDragging
-                                        ? 'border-blue-500 bg-blue-500/10'
-                                        : 'border-white/20 bg-white/5 hover:border-blue-500/50 hover:bg-white/10'
-                                    }`}
+                                    ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/20 bg-white/5 hover:border-blue-500/50 hover:bg-white/10'}`}
                             >
                                 <input
                                     type="file"
@@ -322,38 +331,31 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                         <Upload className="w-8 h-8 text-blue-400" />
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-white font-semibold mb-1">
-                                            Arrastra una imagen aquí
-                                        </p>
-                                        <p className="text-zinc-500 text-sm">
-                                            o haz clic para seleccionar
-                                        </p>
+                                        <p className="text-white font-semibold mb-1">Arrastra una imagen aquí</p>
+                                        <p className="text-zinc-500 text-sm">o haz clic para seleccionar</p>
                                     </div>
                                 </div>
                             </div>
                         ) : (
                             <div className="relative rounded-2xl overflow-hidden border border-white/10">
-                                <img
-                                    src={imagePreview}
-                                    alt="Preview"
-                                    className="w-full h-48 object-cover"
-                                />
+                                <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover" />
                                 <button
                                     type="button"
-                                    onClick={removeImage}
+                                    onClick={() => setImagePreview(null)}
                                     className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-500 text-white rounded-xl transition-all"
                                 >
                                     <X size={16} />
                                 </button>
                             </div>
                         )}
+                        {errors.imagen && <p className="text-red-400 text-xs ml-1">{errors.imagen}</p>}
                     </div>
 
-                    {/* Footer / Buttons */}
+                    {/* Buttons */}
                     <div className="flex gap-4 pt-4">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="flex-1 py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-400 hover:text-white rounded-2xl font-bold transition-all"
                         >
                             Cancelar

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from 'react';
 import {
   Map,
   MapMarker,
@@ -7,214 +7,103 @@ import {
   ControlButton,
   MarkerContent,
   MarkerLabel,
-  MarkerPopup,
   Tooltip,
   TooltipContent,
   TooltipTrigger
-} from "./MapLibre";
-import { Info, MessageSquare } from "lucide-react";
-
-const LOCATIONS = [
-  { name: "North America", lat: 40, lng: -100, color: "#3b82f6" },
-  { name: "South America", lat: -15, lng: -60, color: "#ef4444" },
-  { name: "Europe", lat: 50, lng: 10, color: "#10b981" },
-  { name: "Asia", lat: 34, lng: 100, color: "#f59e0b" },
-  { name: "Africa", lat: 0, lng: 20, color: "#8b5cf6" },
-  { name: "Australia", lat: -25, lng: 135, color: "#ec4899" },
-];
+} from './MapLibre';
+import { Info, MessageSquare } from 'lucide-react';
 
 export default function Mapa({ onToggleChat, chatState }) {
   const mapRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [routeInfo, setRouteInfo] = useState(null);
-  const [isRouting, setIsRouting] = useState(false);
+  const [isMarkerVisible, setIsMarkerVisible] = useState(true);
 
-  // Limpiar ruta al desmontar o cambiar
+  // Solicitar ubicación automáticamente al cargar
   useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        const map = mapRef.current;
-        if (map.getLayer('route')) map.removeLayer('route');
-        if (map.getSource('route')) map.removeSource('route');
-      }
-    };
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          setUserLocation(coords);
+
+          // Centrar suavemente el mapa en la ubicación del usuario
+          if (mapRef.current) {
+            mapRef.current.easeTo({
+              center: [coords.longitude, coords.latitude],
+              duration: 1500
+            });
+          }
+        },
+        (error) => {
+          console.warn('No se pudo obtener la ubicación:', error.message);
+        }
+      );
+    }
   }, []);
 
-  // --- LÓGICA DE ROTACIÓN AUTOMÁTICA ---
+  // Verificar visibilidad del marcador (ocultar completamente si está detrás del globo)
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+    if (!mapRef.current || !userLocation) return;
 
-    let animationFrameId;
-    let userInteracting = false;
-    let rotationStarted = false;
+    const checkVisibility = () => {
+      const map = mapRef.current;
 
-    const rotate = () => {
-      if (!userInteracting && !isRouting && rotationStarted) {
+      try {
+        // Proyectar coordenadas a píxeles de pantalla
+        const point = map.project([userLocation.longitude, userLocation.latitude]);
+        const canvas = map.getCanvas();
+
+        // Verificar si está dentro del canvas visible
+        const inViewport = point.x >= 0 && point.x <= canvas.width &&
+          point.y >= 0 && point.y <= canvas.height;
+
+        // Para proyección globe, verificar si está en el hemisferio visible
         const center = map.getCenter();
-        center.lng += 0.03; // Velocidad aumentada 50%
-        map.setCenter(center);
-        animationFrameId = requestAnimationFrame(rotate);
+        const lng1 = userLocation.longitude;
+        const lng2 = center.lng;
+
+        // Calcular diferencia de longitud (rango -180 a 180)
+        let deltaLng = Math.abs(lng1 - lng2);
+        if (deltaLng > 180) deltaLng = 360 - deltaLng;
+
+        // Si la diferencia es mayor a 90°, está en el hemisferio opuesto
+        const inFrontHemisphere = deltaLng <= 90;
+
+        setIsMarkerVisible(inViewport && inFrontHemisphere);
+      } catch (error) {
+        // Si hay error en la proyección, asumir no visible
+        setIsMarkerVisible(false);
       }
     };
 
-    const handleInteraction = () => {
-      if (!userInteracting) {
-        userInteracting = true;
-        rotationStarted = false;
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      }
-    };
+    const map = mapRef.current;
+    map.on('move', checkVisibility);
+    map.on('zoom', checkVisibility);
+    map.on('rotate', checkVisibility);
+    map.on('pitch', checkVisibility);
 
-    const startRotation = () => {
-      rotationStarted = true;
-      rotate();
-    };
-
-    // Detener rotación al interactuar
-    map.on('mousedown', handleInteraction);
-    map.on('touchstart', handleInteraction);
-    map.on('wheel', handleInteraction);
-    map.on('dragstart', handleInteraction);
-    map.on('zoomstart', handleInteraction);
-
-    // Iniciar rotación cuando el mapa esté listo con un delay
-    const timeoutId = setTimeout(startRotation, 500);
+    checkVisibility();
 
     return () => {
-      clearTimeout(timeoutId);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      map.off('mousedown', handleInteraction);
-      map.off('touchstart', handleInteraction);
-      map.off('wheel', handleInteraction);
-      map.off('dragstart', handleInteraction);
-      map.off('zoomstart', handleInteraction);
+      map.off('move', checkVisibility);
+      map.off('zoom', checkVisibility);
+      map.off('rotate', checkVisibility);
+      map.off('pitch', checkVisibility);
     };
-  }, [isRouting]);
-
-
-  const handleMarkerClick = (loc) => {
-    setSelectedLocation(loc);
-    setRouteInfo(null);
-
-    // Limpiar ruta anterior si existe
-    if (mapRef.current) {
-      const map = mapRef.current;
-      if (map.getLayer('route')) map.removeLayer('route');
-      if (map.getSource('route')) map.removeSource('route');
-    }
-
-    // Fly to location
-    mapRef.current?.flyTo({
-      center: [loc.lng, loc.lat],
-      zoom: 6,
-      duration: 1500,
-    });
-  };
-
-  const handleCloseModal = () => {
-    setSelectedLocation(null);
-    setRouteInfo(null);
-    if (mapRef.current) {
-      const map = mapRef.current;
-      if (map.getLayer('route')) map.removeLayer('route');
-      if (map.getSource('route')) map.removeSource('route');
-    }
-  };
-
-  const calculateRoute = async () => {
-    if (!userLocation || !selectedLocation) {
-      alert("Necesitamos tu ubicación para calcular la ruta. Por favor usa el botón de localizar.");
-      return;
-    }
-
-    setIsRouting(true);
-    try {
-      const start = `${userLocation.longitude},${userLocation.latitude}`;
-      const end = `${selectedLocation.lng},${selectedLocation.lat}`;
-      const url = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`;
-
-      console.log("🚗 Calculando ruta:", url);
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.code === 'Ok' && data.routes.length > 0) {
-        const route = data.routes[0];
-        const durationMins = Math.round(route.duration / 60);
-        const distanceKm = (route.distance / 1000).toFixed(1);
-
-        setRouteInfo({ duration: durationMins, distance: distanceKm });
-
-        // Dibujar ruta en el mapa
-        const map = mapRef.current;
-        if (map) {
-          if (map.getLayer('route')) map.removeLayer('route');
-          if (map.getSource('route')) map.removeSource('route');
-
-          map.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: route.geometry
-            }
-          });
-
-          map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#a855f7',
-              'line-width': 6,
-              'line-opacity': 0.8
-            }
-          });
-
-          // Ajustar vista para mostrar toda la ruta
-          const coordinates = route.geometry.coordinates;
-          const bounds = coordinates.reduce((bounds, coord) => {
-            return bounds.extend(coord);
-          }, new mapRef.current.maplibre.LngLatBounds(coordinates[0], coordinates[0]));
-
-          map.fitBounds(bounds, {
-            padding: 50
-          });
-        }
-      } else {
-        console.warn("⚠️ No se encontró ruta:", data);
-        alert("No se pudo encontrar una ruta válida entre estos puntos.");
-      }
-    } catch (error) {
-      console.error("❌ Error calculando ruta:", error);
-      alert(`Error al conectar con el servicio de rutas: ${error.message}`);
-    } finally {
-      setIsRouting(false);
-    }
-  };
+  }, [userLocation]);
 
   return (
     <div className="relative w-full h-full rounded-none overflow-hidden border-none bg-black">
       <Map
         ref={mapRef}
-        projection={{ type: "globe" }}
+        projection={{ type: 'globe' }}
         theme="dark"
-        center={[-90, 40]}
+        center={[0, 20]}
         zoom={1.5}
         attributionControl={false}
-        dragPan={true}
-        scrollZoom={true}
       >
         <MapControls
           position="bottom-right"
@@ -231,7 +120,7 @@ export default function Mapa({ onToggleChat, chatState }) {
           </ControlGroup>
         </MapControls>
 
-        {/* Custom Discreet Attribution */}
+        {/* Atribución Discreta */}
         <div className="absolute bottom-1 left-1 z-10">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -246,14 +135,15 @@ export default function Mapa({ onToggleChat, chatState }) {
           </Tooltip>
         </div>
 
-        {userLocation && (
+        {/* Marcador de Ubicación del Usuario - Estilo Apple Maps */}
+        {userLocation && isMarkerVisible && (
           <MapMarker
             latitude={userLocation.latitude}
             longitude={userLocation.longitude}
           >
             <MarkerContent>
-              <div className="relative flex items-center justify-center w-6 h-6 bg-white rounded-full shadow-xl ring-1 ring-black/10 z-[999]">
-                <div className="w-4 h-4 bg-blue-500 rounded-full" />
+              <div className="relative flex items-center justify-center w-5 h-5 bg-[#C7C7C7] rounded-full shadow-lg ring-1 ring-black/10">
+                <div className="w-3 h-3 bg-blue-500 rounded-full" />
                 <div className="absolute w-full h-full bg-blue-500 rounded-full animate-ping opacity-20"></div>
               </div>
             </MarkerContent>
@@ -263,41 +153,7 @@ export default function Mapa({ onToggleChat, chatState }) {
           </MapMarker>
         )}
 
-        {LOCATIONS.map((loc) => (
-          <MapMarker
-            key={loc.name}
-            latitude={loc.lat}
-            longitude={loc.lng}
-            onClick={() => handleMarkerClick(loc)}
-          >
-            <MarkerContent>
-              <div className="relative flex items-center justify-center w-4 h-4 cursor-pointer hover:scale-110 transition-transform">
-                <div className="absolute w-full h-full bg-blue-500 rounded-full opacity-50 animate-ping" />
-                <div className="relative w-2.5 h-2.5 bg-blue-400 border-2 border-white rounded-full shadow-sm" />
-              </div>
-            </MarkerContent>
-            <MarkerLabel className="text-xs font-bold tracking-wider text-white/90 drop-shadow-md">
-              {loc.name.toUpperCase()}
-            </MarkerLabel>
-
-            {/* Popup Modal que sigue al marcador */}
-            {selectedLocation?.name === loc.name && (
-              <MarkerPopup
-                offset={[0, -24]}
-                anchor="bottom"
-                className="min-w-[340px] p-0 border-none bg-transparent shadow-none"
-              >
-                <LugarModal
-                  selectedLocation={selectedLocation}
-                  routeInfo={routeInfo}
-                  isRouting={isRouting}
-                  onClose={handleCloseModal}
-                  onCalculateRoute={calculateRoute}
-                />
-              </MarkerPopup>
-            )}
-          </MapMarker>
-        ))}
+        {/* TODO: Aquí se renderizarán los marcadores de lugares desde el backend */}
       </Map>
     </div>
   );
