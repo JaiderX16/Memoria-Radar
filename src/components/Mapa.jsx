@@ -13,7 +13,6 @@ import {
   TooltipTrigger
 } from "./MapLibre";
 import { Info, MessageSquare } from "lucide-react";
-import LugarModal from "./ModalPin";
 
 const LOCATIONS = [
   { name: "North America", lat: 40, lng: -100, color: "#3b82f6" },
@@ -31,10 +30,6 @@ export default function Mapa({ onToggleChat, chatState }) {
   const [routeInfo, setRouteInfo] = useState(null);
   const [isRouting, setIsRouting] = useState(false);
 
-  React.useEffect(() => {
-    console.log("📍 [Mapa] userLocation updated:", userLocation);
-  }, [userLocation]);
-
   // Limpiar ruta al desmontar o cambiar
   useEffect(() => {
     return () => {
@@ -45,6 +40,59 @@ export default function Mapa({ onToggleChat, chatState }) {
       }
     };
   }, []);
+
+  // --- LÓGICA DE ROTACIÓN AUTOMÁTICA ---
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    let animationFrameId;
+    let userInteracting = false;
+    let rotationStarted = false;
+
+    const rotate = () => {
+      if (!userInteracting && !isRouting && rotationStarted) {
+        const center = map.getCenter();
+        center.lng += 0.03; // Velocidad aumentada 50%
+        map.setCenter(center);
+        animationFrameId = requestAnimationFrame(rotate);
+      }
+    };
+
+    const handleInteraction = () => {
+      if (!userInteracting) {
+        userInteracting = true;
+        rotationStarted = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      }
+    };
+
+    const startRotation = () => {
+      rotationStarted = true;
+      rotate();
+    };
+
+    // Detener rotación al interactuar
+    map.on('mousedown', handleInteraction);
+    map.on('touchstart', handleInteraction);
+    map.on('wheel', handleInteraction);
+    map.on('dragstart', handleInteraction);
+    map.on('zoomstart', handleInteraction);
+
+    // Iniciar rotación cuando el mapa esté listo con un delay
+    const timeoutId = setTimeout(startRotation, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      map.off('mousedown', handleInteraction);
+      map.off('touchstart', handleInteraction);
+      map.off('wheel', handleInteraction);
+      map.off('dragstart', handleInteraction);
+      map.off('zoomstart', handleInteraction);
+    };
+  }, [isRouting]);
+
 
   const handleMarkerClick = (loc) => {
     setSelectedLocation(loc);
@@ -128,7 +176,7 @@ export default function Mapa({ onToggleChat, chatState }) {
               'line-cap': 'round'
             },
             paint: {
-              'line-color': '#3b82f6',
+              'line-color': '#a855f7',
               'line-width': 6,
               'line-opacity': 0.8
             }
@@ -157,7 +205,7 @@ export default function Mapa({ onToggleChat, chatState }) {
   };
 
   return (
-    <div className="relative w-full h-full rounded-none overflow-hidden border-none bg-zinc-950">
+    <div className="relative w-full h-full rounded-none overflow-hidden border-none bg-black">
       <Map
         ref={mapRef}
         projection={{ type: "globe" }}

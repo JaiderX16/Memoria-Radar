@@ -1,11 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Mapa from './components/Mapa';
 import Sidebar from './components/Sidebar';
 import FormularioLugar from './components/FormularioLugar';
-import Mia from './components/Mia';
+import ChatBot from './components/Mia';
 import { useFiltrosAvanzados } from './hooks/useFiltrosAvanzados';
-// import { lugares as lugaresLocales } from './data/lugares';
-import { globalFilterState } from './utils/globalState';
 
 function App() {
     const [lugares, setLugares] = useState([]);
@@ -14,10 +12,9 @@ function App() {
     const [newLugarCoords, setNewLugarCoords] = useState(null);
     const [isAddingMode, setIsAddingMode] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    // Estado del chat: 'closed', 'half', 'full'
-    const [chatState, setChatState] = useState('closed');
-    const [mentionedPlaces, setMentionedPlaces] = useState([]);
-    const [filterByMentionedPlaces, setFilterByMentionedPlaces] = useState(false);
+    const [chatState, setChatState] = useState('closed'); // 'closed' | 'half' | 'full'
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [userRole, setUserRole] = useState('user'); // 'user' | 'business' | 'admin'
 
     const {
         filteredLugares,
@@ -25,29 +22,14 @@ function App() {
         searchTerm,
         setSearchTerm,
         selectedCategories,
-        setSelectedCategories,
         sortBy,
         setSortBy,
         sortOrder,
         setSortOrder,
         clearAllFilters,
-        clearSearch,
-        clearCategories,
         toggleCategory,
         addCategory,
-        removeCategory,
-        searchSuggestions,
-        quickFilters
-    } = useFiltrosAvanzados(lugares, mentionedPlaces, filterByMentionedPlaces);
-
-    useEffect(() => {
-        const unsubscribe = globalFilterState.subscribe((state) => {
-            setMentionedPlaces(state.mentionedPlaces || []);
-            setFilterByMentionedPlaces(state.filterByMentionedPlaces || false);
-        });
-
-        return unsubscribe;
-    }, []);
+    } = useFiltrosAvanzados(lugares);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -109,7 +91,6 @@ function App() {
                 const data = await res.json();
                 const places = Array.isArray(data?.places) ? data.places : [];
                 const mapped = places.map((p, idx) => {
-                    // Parsear ubicación "lat, lng" cuando esté disponible
                     let lat = null, lng = null;
                     if (typeof p.ubicacion === 'string' && p.ubicacion.includes(',')) {
                         const [latStr, lngStr] = p.ubicacion.split(',');
@@ -126,22 +107,10 @@ function App() {
                         latitud: lat,
                         longitud: lng,
                         imagen: p.imagen_url || '',
-                        // color opcional; el componente usa azul por defecto si es undefined
                         color: undefined
                     };
                 });
-                console.log('📍 [APP] DEBUG - Lugares cargados desde backend:', {
-                    total: mapped.length,
-                    nombres: mapped.map(l => l.nombre),
-                    categorias: mapped.map(l => l.categoria),
-                    detalles: mapped.map(l => ({
-                        nombre: l.nombre,
-                        categoria: l.categoria,
-                        normalizado: l.nombre?.toLowerCase()?.normalize('NFD')?.replace(/[\u0300-\u036f]/g, '')
-                    }))
-                });
                 setLugares(mapped);
-                // Exponer lugares en el objeto global para pruebas
                 window.lugares = mapped;
             } catch (e) {
                 if (e.name !== 'AbortError') {
@@ -151,64 +120,49 @@ function App() {
         };
 
         fetchPlaces();
-
         return () => controller.abort();
     }, [selectedCategories, searchTerm]);
 
-    const handleLugarClick = (lugar) => {
-        setSelectedLugar(lugar);
-    };
+    // Smart toggle: cerrar sidebar cuando se abre chat en modo full
+    useEffect(() => {
+        if (chatState === 'full' && isSidebarOpen) {
+            setIsSidebarOpen(false);
+        }
+    }, [chatState, isSidebarOpen]);
 
-    const handleAddLugar = () => {
-        setIsAddingMode(true);
-    };
-
+    const handleLugarClick = (lugar) => setSelectedLugar(lugar);
+    const handleAddLugar = () => setIsFormOpen(true);
     const handleMapClick = (latlng) => {
         setNewLugarCoords({ lat: latlng.lat, lng: latlng.lng });
         setIsAddingMode(false);
         setIsFormOpen(true);
     };
-
     const handleFormClose = () => {
         setIsFormOpen(false);
         setNewLugarCoords(null);
         setIsAddingMode(false);
     };
-
-    const handleSubmitLugar = (nuevoLugar) => {
-        setLugares(prev => [...prev, nuevoLugar]);
-    };
-
+    const handleSubmitLugar = (nuevoLugar) => setLugares(prev => [...prev, nuevoLugar]);
     const handleDeleteLugar = (lugarId) => {
         setLugares(prev => prev.filter(lugar => lugar.id !== lugarId));
-        if (selectedLugar && selectedLugar.id === lugarId) {
-            setSelectedLugar(null);
-        }
+        if (selectedLugar && selectedLugar.id === lugarId) setSelectedLugar(null);
     };
 
-    // --- LÓGICA SMART TOGGLE (MUTUAL EXCLUSIVITY) ---
-    // 1. Si se abre el Sidebar, minimizamos el Chat
-    useEffect(() => {
-        if (isSidebarOpen && chatState !== 'closed') {
-            setChatState('closed');
-        }
-    }, [isSidebarOpen]);
-
-    // 2. Si el Chat se expande (full), cerramos el Sidebar
-    useEffect(() => {
-        if (chatState === 'full' && isSidebarOpen) {
-            setIsSidebarOpen(false);
-        }
-    }, [chatState]);
-
+    // Handler para abrir/cerrar el chatbot
     const handleToggleChat = () => {
-        if (chatState === 'closed') setChatState('half');
-        else if (chatState === 'half') setChatState('full');
-        else setChatState('closed');
+        if (chatState === 'closed') {
+            setIsChatOpen(true);
+            setChatState('half');
+        } else if (chatState === 'half') {
+            setChatState('full');
+        } else {
+            setChatState('closed');
+            setIsChatOpen(false);
+        }
     };
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-zinc-900">
+        <div className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-black">
             <Mapa
                 lugares={filteredLugares}
                 onLugarClick={handleLugarClick}
@@ -237,35 +191,57 @@ function App() {
                 onClearFilters={clearAllFilters}
                 onSortChange={setSortBy}
                 onOrderChange={setSortOrder}
+                onAddLugar={(userRole === 'admin' || userRole === 'business') ? handleAddLugar : null}
+                onDeleteLugar={userRole === 'admin' ? handleDeleteLugar : null}
+                userRole={userRole}
             />
 
-            <Mia
-                isOpen={chatState !== 'closed'}
-                setIsOpen={(open) => setChatState(open ? 'half' : 'closed')}
+            {/* Selector de Rol - Centrado con z-index alto */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-1 bg-white/90 dark:bg-black/90 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border border-white/20">
+                <button
+                    onClick={() => setUserRole('user')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'user' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                >
+                    USER
+                </button>
+                <button
+                    onClick={() => setUserRole('business')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'business' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                >
+                    BUSINESS
+                </button>
+                <button
+                    onClick={() => setUserRole('admin')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'admin' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                >
+                    ADMIN
+                </button>
+            </div>
+
+            {/* MIA ChatBot Component */}
+            <ChatBot
+                isOpen={isChatOpen}
+                setIsOpen={setIsChatOpen}
                 chatState={chatState}
                 setChatState={setChatState}
                 onSetCategory={addCategory}
                 onSetSearch={setSearchTerm}
                 currentFilters={{
                     search: searchTerm,
-                    categories: selectedCategories
+                    categories: selectedCategories,
+                    sortBy,
+                    sortOrder
                 }}
                 onClearFilters={clearAllFilters}
                 onToggleCategory={toggleCategory}
             />
 
-            {/* Formulario Modal */}
-            {isFormOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <FormularioLugar
-                            coords={newLugarCoords}
-                            onClose={handleFormClose}
-                            onSubmit={handleSubmitLugar}
-                        />
-                    </div>
-                </div>
-            )}
+            <FormularioLugar
+                isOpen={isFormOpen}
+                initialCoords={newLugarCoords}
+                onClose={handleFormClose}
+                onSubmit={handleSubmitLugar}
+            />
         </div>
     );
 }

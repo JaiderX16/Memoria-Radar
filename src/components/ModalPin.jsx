@@ -82,7 +82,6 @@ const PanoramaViewer = ({ color }) => {
       const texture = textureLoader.load(
         '/img/Parque_Constitucion.jpg',
         (tex) => {
-          console.log('✅ Textura cargada:', tex.image.width, 'x', tex.image.height);
           tex.colorSpace = THREE.SRGBColorSpace; // IMPORTANTE: Para colores vivos y correctos
         },
         undefined,

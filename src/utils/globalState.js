@@ -1,44 +1,30 @@
-// Variables globales para el estado del filtrado manual y lugares mencionados
-// Estas variables permiten la coordinación entre Sidebar y MIA
+// Variables globales para el estado del filtrado manual
+// Coordinación simple entre componentes
 
-// Estado del filtro manual y lugares mencionados
+// Estado del filtro manual
 if (typeof window !== 'undefined') {
-  // Inicializar variables globales si no existen
   if (typeof window.manualFilterActive === 'undefined') {
     window.manualFilterActive = false;
   }
-  
+
   if (typeof window.currentManualFilter === 'undefined') {
     window.currentManualFilter = 'todos';
-  }
-  
-  // Nuevas variables para lugares mencionados específicos
-  if (typeof window.mentionedPlaces === 'undefined') {
-    window.mentionedPlaces = [];
-  }
-  
-  if (typeof window.filterByMentionedPlaces === 'undefined') {
-    window.filterByMentionedPlaces = false;
   }
 }
 
 // Funciones de utilidad para manejar el estado global
 export const globalFilterState = {
-  // Obtener el estado actual del filtro manual y lugares mencionados
+  // Obtener el estado actual del filtro manual
   getState: () => {
     if (typeof window === 'undefined') {
-      return { 
-        isActive: false, 
-        currentFilter: 'todos',
-        mentionedPlaces: [],
-        filterByMentionedPlaces: false
+      return {
+        isActive: false,
+        currentFilter: 'todos'
       };
     }
     return {
       isActive: window.manualFilterActive || false,
-      currentFilter: window.currentManualFilter || 'todos',
-      mentionedPlaces: window.mentionedPlaces || [],
-      filterByMentionedPlaces: window.filterByMentionedPlaces || false
+      currentFilter: window.currentManualFilter || 'todos'
     };
   },
 
@@ -47,17 +33,12 @@ export const globalFilterState = {
     if (typeof window !== 'undefined') {
       window.manualFilterActive = category !== 'todos';
       window.currentManualFilter = category;
-      // Limpiar filtro por lugares mencionados cuando se activa filtro manual
-      window.filterByMentionedPlaces = false;
-      window.mentionedPlaces = [];
-      
+
       // Disparar evento personalizado para notificar cambios
       window.dispatchEvent(new CustomEvent('manualFilterChanged', {
         detail: {
           isActive: window.manualFilterActive,
-          currentFilter: window.currentManualFilter,
-          mentionedPlaces: window.mentionedPlaces,
-          filterByMentionedPlaces: window.filterByMentionedPlaces
+          currentFilter: window.currentManualFilter
         }
       }));
     }
@@ -68,68 +49,12 @@ export const globalFilterState = {
     if (typeof window !== 'undefined') {
       window.manualFilterActive = false;
       window.currentManualFilter = 'todos';
-      window.filterByMentionedPlaces = false;
-      window.mentionedPlaces = [];
-      
+
       // Disparar evento personalizado para notificar cambios
       window.dispatchEvent(new CustomEvent('manualFilterChanged', {
         detail: {
           isActive: false,
-          currentFilter: 'todos',
-          mentionedPlaces: [],
-          filterByMentionedPlaces: false
-        }
-      }));
-    }
-  },
-
-  // Establecer filtro por lugares mencionados específicos
-  setMentionedPlacesFilter: (places) => {
-    console.log('🔥 [GLOBAL_STATE] setMentionedPlacesFilter llamado con:', places);
-    if (typeof window !== 'undefined') {
-      const placesArray = Array.isArray(places) ? places : [places];
-      console.log('🔥 [GLOBAL_STATE] Lugares convertidos a array:', placesArray);
-      
-      window.mentionedPlaces = placesArray;
-      window.filterByMentionedPlaces = window.mentionedPlaces.length > 0;
-      
-      console.log('🔥 [GLOBAL_STATE] Estado actualizado:', {
-        mentionedPlaces: window.mentionedPlaces,
-        filterByMentionedPlaces: window.filterByMentionedPlaces
-      });
-      
-      // Limpiar filtro manual cuando se activa filtro por lugares mencionados
-      window.manualFilterActive = false;
-      window.currentManualFilter = 'todos';
-      
-      // Disparar evento personalizado para notificar cambios
-      const eventDetail = {
-        isActive: false,
-        currentFilter: 'todos',
-        mentionedPlaces: window.mentionedPlaces,
-        filterByMentionedPlaces: window.filterByMentionedPlaces
-      };
-      console.log('🔥 [GLOBAL_STATE] Disparando evento con detalle:', eventDetail);
-      
-      window.dispatchEvent(new CustomEvent('manualFilterChanged', {
-        detail: eventDetail
-      }));
-    }
-  },
-
-  // Limpiar filtro por lugares mencionados
-  clearMentionedPlacesFilter: () => {
-    if (typeof window !== 'undefined') {
-      window.mentionedPlaces = [];
-      window.filterByMentionedPlaces = false;
-      
-      // Disparar evento personalizado para notificar cambios
-      window.dispatchEvent(new CustomEvent('manualFilterChanged', {
-        detail: {
-          isActive: window.manualFilterActive,
-          currentFilter: window.currentManualFilter,
-          mentionedPlaces: [],
-          filterByMentionedPlaces: false
+          currentFilter: 'todos'
         }
       }));
     }
@@ -144,17 +69,11 @@ export const globalFilterState = {
   // Obtener el título dinámico basado en el filtro actual
   getDynamicTitle: () => {
     const state = globalFilterState.getState();
-    
-    // Priorizar lugares mencionados sobre filtro manual
-    if (state.filterByMentionedPlaces && state.mentionedPlaces.length > 0) {
-      const count = state.mentionedPlaces.length;
-      return count === 1 ? '1 lugar mencionado' : `${count} lugares mencionados`;
-    }
-    
+
     if (!state.isActive || state.currentFilter === 'todos') {
       return 'Lugares Destacados';
     }
-    
+
     const titles = {
       'parques': 'Parques y Espacios Verdes',
       'monumentos': 'Monumentos y Patrimonio',
@@ -165,7 +84,7 @@ export const globalFilterState = {
       'estadios': 'Estadios y Deportes',
       'naturaleza': 'Naturaleza y Paisajes'
     };
-    
+
     return titles[state.currentFilter] || 'Lugares Destacados';
   },
 
@@ -176,13 +95,13 @@ export const globalFilterState = {
         callback(event.detail);
       };
       window.addEventListener('manualFilterChanged', handler);
-      
+
       // Retornar función para desuscribirse
       return () => {
         window.removeEventListener('manualFilterChanged', handler);
       };
     }
-    return () => {}; // Función vacía para SSR
+    return () => { }; // Función vacía para SSR
   }
 };
 
@@ -190,13 +109,22 @@ export const globalFilterState = {
 export const getManualFilterState = globalFilterState.getState;
 export const setManualFilter = globalFilterState.setManualFilter;
 export const clearManualFilter = globalFilterState.clearManualFilter;
-export const setMentionedPlacesFilter = globalFilterState.setMentionedPlacesFilter;
-export const clearMentionedPlacesFilter = globalFilterState.clearMentionedPlacesFilter;
 export const isFilterActive = globalFilterState.isFilterActive;
 export const getDynamicTitle = globalFilterState.getDynamicTitle;
 
+// Funciones placeholder para compatibilidad con Mia.jsx
+// TODO: Implementar lógica cuando se integre el servicio de IA
+export const setMentionedPlacesFilter = (places) => {
+  console.log('[globalState] setMentionedPlacesFilter (stub):', places);
+  // Por ahora no hace nada, se implementará cuando se conecte el servicio de IA
+};
+
+export const clearMentionedPlacesFilter = () => {
+  console.log('[globalState] clearMentionedPlacesFilter (stub)');
+  // Por ahora no hace nada, se implementará cuando se conecte el servicio de IA
+};
+
 // Inicialización automática
 if (typeof window !== 'undefined') {
-  // Asegurar que las variables estén disponibles globalmente
   window.globalFilterState = globalFilterState;
 }
