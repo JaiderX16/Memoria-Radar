@@ -39,10 +39,12 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     // Detectar móvil
     useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768);
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+        const mediaQuery = window.matchMedia('(max-width: 768px)');
+        setIsMobile(mediaQuery.matches);
+
+        const handler = (e) => setIsMobile(e.matches);
+        mediaQuery.addEventListener('change', handler);
+        return () => mediaQuery.removeEventListener('change', handler);
     }, []);
 
     // Scroll al fondo
@@ -137,14 +139,19 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     };
 
     // Estilos
-    const bgMain = isDarkMode ? 'bg-[#121214]/85 backdrop-blur-2xl' : 'bg-white/90 backdrop-blur-xl';
+    const bgMain = isMobile
+        ? (isDarkMode ? 'bg-[#121214]' : 'bg-white')
+        : (isDarkMode ? 'bg-[#121214]/85 backdrop-blur-2xl' : 'bg-white/90 backdrop-blur-xl');
+
+    const backdropClass = isMobile ? '' : 'backdrop-blur-md';
+
     const bgHeader = isDarkMode ? 'bg-transparent' : 'bg-transparent';
     const textMain = isDarkMode ? 'text-white' : 'text-gray-900';
     const textSub = isDarkMode ? 'text-gray-400' : 'text-gray-500';
     const borderSub = isDarkMode ? 'border-white/10' : 'border-gray-200/50';
-    const bubbleUserBg = isDarkMode ? 'bg-[#262626]/80' : 'bg-black/90';
+    const bubbleUserBg = isDarkMode ? 'bg-[#262626]' : 'bg-black';
     const bubbleUserText = isDarkMode ? 'text-white' : 'text-white';
-    const bubbleBotBg = isDarkMode ? 'bg-[#262626]/60' : 'bg-[#E9E9EB]/80';
+    const bubbleBotBg = isDarkMode ? 'bg-[#262626]' : 'bg-[#E9E9EB]';
     const bubbleBotText = isDarkMode ? 'text-white' : 'text-black';
 
     const ChatHeader = (
@@ -180,12 +187,12 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                 return (
                     <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
                         {msg.type === 'text' && (
-                            <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-2xl rounded-tr-none` : `${bubbleBotBg} ${bubbleBotText} rounded-2xl rounded-tl-none`}`}>
+                            <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed ${backdropClass} ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-2xl rounded-tr-none` : `${bubbleBotBg} ${bubbleBotText} rounded-2xl rounded-tl-none`}`}>
                                 {msg.text}
                             </div>
                         )}
                         {msg.type === 'file' && (
-                            <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-tr-none` : `${bubbleBotBg} ${bubbleBotText} rounded-tl-none`}`}>
+                            <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 ${backdropClass} ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-tr-none` : `${bubbleBotBg} ${bubbleBotText} rounded-tl-none`}`}>
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
                                     {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={16} />}
                                 </div>
@@ -201,7 +208,7 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
             {isTyping && (
                 <div className="flex items-start">
-                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md ${bubbleBotBg}`}>
+                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center ${backdropClass} ${bubbleBotBg}`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -216,7 +223,7 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         <div className={`p-4 pb-10 ${isDarkMode ? 'bg-transparent' : 'bg-transparent'} border-t ${borderSub}`}>
             {selectedFile && (
                 <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className={`${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
+                    <div className={`${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-xl p-2 flex items-center justify-between ${backdropClass}`}>
                         <div className="flex items-center gap-2 overflow-hidden">
                             <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
                                 {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
@@ -230,7 +237,7 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
             {showEmojiPicker && (
                 <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className={`${isDarkMode ? 'bg-[#1c1c1e]/80 border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl backdrop-blur-xl`}>
+                    <div className={`${isDarkMode ? 'bg-[#1c1c1e] border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl`}>
                         {emojis.map(emoji => (
                             <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-white/5 rounded-lg transition-colors">{emoji}</button>
                         ))}
@@ -248,7 +255,7 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder="Escribe un mensaje..."
-                        className={`w-full ${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10 text-white placeholder-gray-500' : 'bg-gray-100 border-transparent text-gray-900'} border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all backdrop-blur-md`}
+                        className={`w-full ${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10 text-white placeholder-gray-500' : 'bg-gray-100 border-transparent text-gray-900'} border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all ${backdropClass}`}
                     />
                     <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
                 </div>
@@ -289,8 +296,8 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
             <Drawer.Portal>
                 <Drawer.Content className={`${bgMain} flex flex-col rounded-t-[40px] fixed bottom-0 left-0 right-0 z-[1000] outline-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] h-full border-t border-white/10`}>
                     <div
-                        className="flex flex-col overflow-hidden transition-all duration-300"
-                        style={{ height: activeSnapPoint ? `${activeSnapPoint * 100}vh` : '45vh' }}
+                        className="flex flex-col overflow-hidden"
+                        style={{ height: activeSnapPoint ? `${activeSnapPoint * 100}dvh` : '45dvh' }}
                     >
                         <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-white/20 mt-4 mb-2" />
 
