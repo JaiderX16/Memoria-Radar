@@ -11,6 +11,7 @@ import {
     ChevronDown,
     Mic
 } from 'lucide-react';
+import { Drawer } from 'vaul';
 
 const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Estados principales
@@ -32,7 +33,6 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
-    const touchStartRef = useRef(null);
 
     const isDarkMode = true;
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
@@ -51,58 +51,39 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     };
 
     useEffect(() => {
-        setTimeout(scrollToBottom, 100);
-    }, [messages, isTyping, selectedFile, isRecording, isOpen, chatState]);
+        if (isOpen) {
+            setTimeout(scrollToBottom, 100);
+        }
+    }, [messages, isTyping, selectedFile, isRecording, isOpen]);
 
-    // Gestos táctiles (drag)
-    const handleDragStart = (clientY) => {
-        touchStartRef.current = clientY;
-    };
+    // Sincronizar chatState con vaul snap points
+    const snapPoints = [0.45, 0.92];
+    const [activeSnapPoint, setActiveSnapPoint] = useState(snapPoints[0]);
 
-    const handleDragEnd = (clientY) => {
-        if (!touchStartRef.current) return;
-        const diff = clientY - touchStartRef.current;
-        touchStartRef.current = null;
+    useEffect(() => {
+        if (isMobile) {
+            if (chatState === 'half') setActiveSnapPoint(0.45);
+            if (chatState === 'full') setActiveSnapPoint(0.92);
+            if (chatState === 'closed') setIsOpen(false);
+        }
+    }, [chatState, isMobile, setIsOpen]);
 
-        const ABS_DIFF = Math.abs(diff);
-
-        if (ABS_DIFF < 10) {
-            // TAP - Toggle chat state
-            setChatState(prev => prev === 'full' ? 'half' : 'full');
-        } else {
-            // DRAG - determinar estado según distancia
-            if (diff < -100) setChatState('full');
-            else if (diff > 100) setChatState('closed');
-            else setChatState('half');
+    const handleSnapPointChange = (snap) => {
+        if (snap === null) return;
+        setActiveSnapPoint(snap);
+        if (snap === 0.45) setChatState('half');
+        if (snap === 0.92) setChatState('full');
+        if (snap === 0) {
+            setChatState('closed');
+            setIsOpen(false);
         }
     };
 
-    const handleTouchStart = (e) => handleDragStart(e.touches[0].clientY);
-    const handleTouchEnd = (e) => handleDragEnd(e.changedTouches[0].clientY);
-
-    const handleMouseDown = (e) => {
-        handleDragStart(e.clientY);
-        window.addEventListener('mousemove', handleWindowMouseMove);
-        window.addEventListener('mouseup', handleWindowMouseUp);
-    };
-
-    const handleWindowMouseMove = (e) => {
-        // Opcional: implementar feedback visual durante drag
-    };
-
-    const handleWindowMouseUp = (e) => {
-        handleDragEnd(e.clientY);
-        window.removeEventListener('mousemove', handleWindowMouseMove);
-        window.removeEventListener('mouseup', handleWindowMouseUp);
-    };
-
-    // Enviar mensaje - TODO: Conectar con tu servicio de IA
+    // Enviar mensaje
     const handleSendMessage = async (e) => {
-        e.preventDefault();
-
+        if (e) e.preventDefault();
         if (inputValue.trim() === '' && !selectedFile && !isRecording) return;
 
-        // Mensaje de usuario
         const userMessage = inputValue.trim();
         if (userMessage) {
             const newTextMessage = {
@@ -116,11 +97,6 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
             setInputValue('');
             setIsTyping(true);
 
-            // TODO: Aquí conecta tu servicio de IA real
-            // Ejemplo: const response = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ message: userMessage }) });
-            // const data = await response.json();
-
-            // Placeholder: respuesta simulada
             setTimeout(() => {
                 setMessages(prev => [...prev, {
                     id: Date.now() + 10,
@@ -133,7 +109,6 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
             }, 1000);
         }
 
-        // Manejo de archivo
         if (selectedFile) {
             const newFileMessage = {
                 id: Date.now(),
@@ -151,189 +126,184 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
 
-        // Resetear grabación si estaba activa
-        if (isRecording) {
-            setIsRecording(false);
-        }
-
+        if (isRecording) setIsRecording(false);
         setShowEmojiPicker(false);
     };
 
-    const handleEmojiClick = (emoji) => {
-        setInputValue(prev => prev + emoji);
-    };
-
+    const handleEmojiClick = (emoji) => setInputValue(prev => prev + emoji);
     const removeSelectedFile = () => {
         setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     // Estilos
-    const bgMain = isDarkMode ? 'bg-black' : 'bg-white';
-    const bgGlass = isDarkMode ? 'bg-[#1C1C1E]/85' : 'bg-white/85';
+    const bgMain = isDarkMode ? 'bg-[#121214]/85 backdrop-blur-2xl' : 'bg-white/90 backdrop-blur-xl';
+    const bgHeader = isDarkMode ? 'bg-transparent' : 'bg-transparent';
     const textMain = isDarkMode ? 'text-white' : 'text-gray-900';
     const textSub = isDarkMode ? 'text-gray-400' : 'text-gray-500';
-    const borderSub = isDarkMode ? 'border-white/5' : 'border-gray-200/50';
-    const bubbleUserBg = isDarkMode ? 'bg-white' : 'bg-black';
-    const bubbleUserText = isDarkMode ? 'text-black' : 'text-white';
-    const bubbleBotBg = isDarkMode ? 'bg-[#262626]' : 'bg-[#E9E9EB]';
+    const borderSub = isDarkMode ? 'border-white/10' : 'border-gray-200/50';
+    const bubbleUserBg = isDarkMode ? 'bg-[#262626]/80' : 'bg-black/90';
+    const bubbleUserText = isDarkMode ? 'text-white' : 'text-white';
+    const bubbleBotBg = isDarkMode ? 'bg-[#262626]/60' : 'bg-[#E9E9EB]/80';
     const bubbleBotText = isDarkMode ? 'text-white' : 'text-black';
 
-    const containerClasses = isMobile
-        ? `fixed bottom-0 left-0 right-0 z-[1000] flex flex-col transition-all duration-500 cubic-bezier(0.32, 0.72, 0, 1) 
-       ${bgMain} rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden
-       ${isOpen ? 'translate-y-0' : 'translate-y-[120%]'} 
-       ${chatState === 'full' ? 'h-[92vh]' : 'h-[45vh]'}`
-        : `fixed bottom-4 right-16 w-[380px] h-[500px] bg-[#1C1C1E]/85 backdrop-blur-xl rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden border border-white/5 origin-bottom-right transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`;
+    const ChatHeader = (
+        <div className={`${bgHeader} p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
+            <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${isDarkMode ? 'bg-[#1c1c1e]/50 border border-white/10' : 'bg-gray-100'}`}>
+                    <Bot size={24} className={textMain} />
+                </div>
+                <div className="flex flex-col">
+                    <h3 className={`font-bold text-base ${textMain} leading-tight`}>MIA Asistente</h3>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className={`text-xs ${textSub} font-medium`}>En línea</span>
+                    </div>
+                </div>
+            </div>
 
-    return (
-        <div className={containerClasses}>
-            {/* Handle para móvil */}
-            {isMobile && (
-                <div
-                    className="w-full h-8 absolute top-0 left-0 z-30 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    onMouseDown={handleMouseDown}
-                >
-                    <div className="w-12 h-1.5 bg-gray-400/30 rounded-full backdrop-blur-sm" />
+            <button
+                onClick={() => { setIsOpen(false); setChatState('closed'); }}
+                className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 ${isDarkMode ? 'bg-[#1c1c1e]/50 text-gray-400 hover:text-white' : 'bg-gray-100 text-gray-500'}`}
+            >
+                <ChevronDown size={24} />
+            </button>
+        </div>
+    );
+
+    const ChatMessages = (
+        <div className="flex-1 overflow-y-auto px-4 space-y-4 scrollbar-hide py-4" onClick={() => setShowEmojiPicker(false)}>
+            <div className={`text-center text-[10px] ${textSub} font-bold my-4 uppercase tracking-widest opacity-50`}>HOY</div>
+
+            {messages.map((msg, index) => {
+                const isUser = msg.sender === 'user';
+                return (
+                    <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
+                        {msg.type === 'text' && (
+                            <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-2xl rounded-tr-none` : `${bubbleBotBg} ${bubbleBotText} rounded-2xl rounded-tl-none`}`}>
+                                {msg.text}
+                            </div>
+                        )}
+                        {msg.type === 'file' && (
+                            <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-tr-none` : `${bubbleBotBg} ${bubbleBotText} rounded-tl-none`}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+                                    {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={16} />}
+                                </div>
+                                <div className="flex flex-col overflow-hidden">
+                                    <span className="text-sm font-medium truncate w-32">{msg.file.name}</span>
+                                    <span className="text-[10px] opacity-70">{msg.file.size}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+
+            {isTyping && (
+                <div className="flex items-start">
+                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md ${bubbleBotBg}`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
+                    </div>
+                </div>
+            )}
+            <div ref={messagesEndRef} />
+        </div>
+    );
+
+    const ChatInput = (
+        <div className={`p-4 pb-10 ${isDarkMode ? 'bg-transparent' : 'bg-transparent'} border-t ${borderSub}`}>
+            {selectedFile && (
+                <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
+                    <div className={`${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
+                                {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
+                            </div>
+                            <span className={`text-xs font-medium truncate ${textMain}`}>{selectedFile.name}</span>
+                        </div>
+                        <button onClick={removeSelectedFile} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                    </div>
                 </div>
             )}
 
-            {/* Header */}
-            <div className={`${bgGlass} backdrop-blur-md border-b ${borderSub} p-4 ${isMobile ? 'pt-10' : ''} flex items-center justify-between z-20 shadow-sm sm:shadow-none transition-colors duration-300`}>
-                <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-inner ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                        <Bot size={20} className={textMain} />
+            {showEmojiPicker && (
+                <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
+                    <div className={`${isDarkMode ? 'bg-[#1c1c1e]/80 border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl backdrop-blur-xl`}>
+                        {emojis.map(emoji => (
+                            <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-white/5 rounded-lg transition-colors">{emoji}</button>
+                        ))}
                     </div>
-                    <div className="flex flex-col">
-                        <h3 className={`font-semibold text-sm ${textMain} leading-tight`}>MIA Asistente</h3>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className={`text-[11px] ${textSub} font-medium`}>En línea</span>
-                        </div>
-                    </div>
+                </div>
+            )}
+
+            <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) setSelectedFile(e.target.files[0]); }} />
+                <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
+
+                <div className="flex-1 relative">
+                    <input
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder="Escribe un mensaje..."
+                        className={`w-full ${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10 text-white placeholder-gray-500' : 'bg-gray-100 border-transparent text-gray-900'} border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all backdrop-blur-md`}
+                    />
+                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
                 </div>
 
                 <button
-                    onClick={() => { setIsOpen(false); setChatState('closed'); }}
-                    className={`p-2 rounded-full transition-all active:scale-95 ${isDarkMode ? 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    type="submit"
+                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-white text-black scale-105 shadow-lg' : 'bg-[#1c1c1e]/50 text-gray-500'}`}
                 >
-                    {isMobile ? <ChevronDown size={20} /> : <X size={18} />}
+                    {inputValue.trim() || selectedFile ? <ArrowUp size={22} strokeWidth={2.5} /> : <Mic size={22} strokeWidth={2} />}
                 </button>
-            </div>
-
-            {/* Mensajes */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 scrollbar-hide bg-transparent" style={{ paddingTop: '10px' }} onClick={() => setShowEmojiPicker(false)}>
-                <div className={`text-center text-[10px] ${textSub} font-medium my-4 uppercase tracking-wide`}>Hoy</div>
-
-                {messages.map((msg, index) => {
-                    const isUser = msg.sender === 'user';
-                    const isLast = index === messages.length - 1;
-
-                    return (
-                        <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
-                            {/* TEXTO */}
-                            {msg.type === 'text' && (
-                                <div className={`px-4 py-2.5 max-w-[85%] text-[15px] leading-relaxed relative ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-[1.2rem] rounded-tr-sm` : `${bubbleBotBg} ${bubbleBotText} rounded-[1.2rem] rounded-tl-sm`}`}>
-                                    {msg.text}
-                                </div>
-                            )}
-
-                            {/* ARCHIVO */}
-                            {msg.type === 'file' && (
-                                <div className={`p-3 max-w-[85%] rounded-[1.2rem] flex items-center gap-3 border ${isUser ? `${bubbleUserBg} ${bubbleUserText} rounded-tr-sm ${isDarkMode ? 'border-transparent' : 'border-black/10'}` : `${bubbleBotBg} ${bubbleBotText} rounded-tl-sm border-transparent`}`}>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-current opacity-20' : isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-black'}`}>
-                                        {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={20} />}
-                                    </div>
-                                    <div className="flex flex-col overflow-hidden">
-                                        <span className="text-sm font-medium truncate w-32">{msg.file.name}</span>
-                                        <span className="text-[10px] opacity-70">{msg.file.size} • {msg.file.type.toUpperCase()}</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {isUser && isLast && <span className={`text-[10px] ${textSub} font-medium mt-1 mr-1`}>Entregado</span>}
-                        </div>
-                    );
-                })}
-
-                {isTyping && (
-                    <div className="flex items-start">
-                        <div className={`px-4 py-3 rounded-[1.2rem] rounded-tl-sm flex gap-1 items-center h-10 w-16 justify-center ${bubbleBotBg}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full animate-bounce ${isDarkMode ? 'bg-gray-400' : 'bg-gray-400'}`}></span>
-                            <span className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:0.15s] ${isDarkMode ? 'bg-gray-400' : 'bg-gray-400'}`}></span>
-                            <span className={`w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:0.3s] ${isDarkMode ? 'bg-gray-400' : 'bg-gray-400'}`}></span>
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className={`p-3 border-t ${borderSub} z-20 relative transition-colors duration-300 pb-3 ${bgGlass} backdrop-blur-md`}>
-                {/* Preview File */}
-                {selectedFile && (
-                    <div className="absolute bottom-full left-0 w-full px-3 mb-2 animate-in slide-in-from-bottom-2 duration-200">
-                        <div className={`${isDarkMode ? 'bg-[#1c1c1e] border-gray-700' : 'bg-white border-gray-200'} border rounded-[1.2rem] shadow-lg p-2 flex items-center justify-between`}>
-                            <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-500 shrink-0">
-                                    {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
-                                </div>
-                                <span className={`text-xs font-medium truncate max-w-[180px] ${textMain}`}>{selectedFile.name}</span>
-                            </div>
-                            <button onClick={removeSelectedFile} className="p-1.5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 rounded-full transition-colors"><Trash2 size={14} /></button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Emoji Picker */}
-                {showEmojiPicker && (
-                    <div className="absolute bottom-full left-0 w-full px-3 mb-2 animate-in slide-in-from-bottom-2 duration-200">
-                        <div className={`${isDarkMode ? 'bg-[#1c1c1e]/95 border-gray-700 text-white' : 'bg-white/95 border-gray-200 text-black'} backdrop-blur-xl border rounded-[1.5rem] shadow-lg p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide`}>
-                            {emojis.map(emoji => (
-                                <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className={`text-xl p-1 rounded-lg transition-colors flex items-center justify-center ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}>{emoji}</button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <form onSubmit={handleSendMessage} className="flex items-end gap-2">
-                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) { setSelectedFile(e.target.files[0]); setShowEmojiPicker(false); } }} />
-                    <button type="button" onClick={() => fileInputRef.current.click()} className={`p-2 transition-colors mb-0.5 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-white hover:bg-white/10' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}><Paperclip size={22} strokeWidth={1.5} /></button>
-
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            value={inputValue}
-                            onClick={() => setShowEmojiPicker(false)}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            placeholder={selectedFile ? 'Añadir un comentario...' : 'Escribe un mensaje...'}
-                            className={`w-full border ${isDarkMode ? 'bg-[#1c1c1e] border-gray-700 text-white placeholder-gray-500 focus:border-gray-500' : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-gray-100'} text-[15px] rounded-[1.2rem] px-4 py-2 pr-10 focus:outline-none focus:ring-2 transition-all`}
-                        />
-                        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-2 top-2.5 transition-colors ${showEmojiPicker ? 'text-blue-500' : isDarkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}><Smile size={20} strokeWidth={2} /></button>
-                    </div>
-
-                    {(!inputValue.trim() && !selectedFile) ? (
-                        <button
-                            type="button"
-                            onClick={() => setIsRecording(true)}
-                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 mb-0.5 shadow-sm ${isDarkMode ? 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white' : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-black'}`}
-                        >
-                            <Mic size={18} strokeWidth={2.5} />
-                        </button>
-                    ) : (
-                        <button
-                            type="submit"
-                            disabled={!inputValue.trim() && !selectedFile}
-                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 mb-0.5 shadow-sm ${(inputValue.trim() || selectedFile) ? (isDarkMode ? 'bg-white text-black hover:scale-105' : 'bg-black text-white hover:scale-105') : (isDarkMode ? 'bg-gray-800 text-gray-600 cursor-default' : 'bg-gray-200 text-gray-400 cursor-default')}`}
-                        >
-                            <ArrowUp size={18} strokeWidth={2.5} />
-                        </button>
-                    )}
-                </form>
-            </div>
+            </form>
         </div>
+    );
+
+    if (!isMobile) {
+        return (
+            <div className={`fixed bottom-4 right-16 w-[380px] h-[600px] ${bgMain} rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-white/10 transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+                {ChatHeader}
+                {ChatMessages}
+                {ChatInput}
+            </div>
+        );
+    }
+
+    return (
+        <Drawer.Root
+            open={isOpen}
+            onOpenChange={(open) => {
+                setIsOpen(open);
+                if (!open) setChatState('closed');
+            }}
+            snapPoints={snapPoints}
+            activeSnapPoint={activeSnapPoint}
+            setActiveSnapPoint={handleSnapPointChange}
+            fadeFromIndex={0}
+            modal={false}
+        >
+            <Drawer.Portal>
+                <Drawer.Content className={`${bgMain} flex flex-col rounded-t-[40px] fixed bottom-0 left-0 right-0 z-[1000] outline-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] h-full border-t border-white/10`}>
+                    <div
+                        className="flex flex-col overflow-hidden transition-all duration-300"
+                        style={{ height: activeSnapPoint ? `${activeSnapPoint * 100}vh` : '45vh' }}
+                    >
+                        <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-white/20 mt-4 mb-2" />
+
+                        <div className="flex-1 overflow-hidden flex flex-col">
+                            {ChatMessages}
+                        </div>
+                        <div className="mt-auto">
+                            {ChatInput}
+                        </div>
+                    </div>
+                </Drawer.Content>
+            </Drawer.Portal>
+        </Drawer.Root>
     );
 };
 
