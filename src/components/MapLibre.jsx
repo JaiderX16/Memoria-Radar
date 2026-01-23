@@ -688,15 +688,21 @@ function MapControls({
     let dynamicPositionClass = positionClasses[position];
 
     // Solo aplicar lógica de chat si los controles están en bottom-right (donde está el chat)
-    if (position === "bottom-right") {
+    // Y solo si estamos en móvil (window.innerWidth < 768)
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+    if (position === "bottom-right" && isMobile) {
         if (chatState === 'half') {
-            dynamicPositionClass = "bottom-[48vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]";
+            dynamicPositionClass = "bottom-[48vh] right-6 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
         } else if (chatState === 'full') {
-            // Se queda en la misma posición visual que 'half' pero con z-index menor para ocultarse detrás
-            dynamicPositionClass = "bottom-[48vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] -z-10 opacity-0";
+            // Se queda en la misma posición visual que 'half' pero se oculta detrás del chat (z-1000)
+            dynamicPositionClass = "bottom-[48vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[900] opacity-0 pointer-events-none";
         } else {
-            dynamicPositionClass = "bottom-5 right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-10";
+            dynamicPositionClass = "bottom-5 right-6 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
         }
+    } else if (position === "bottom-right") {
+        // En desktop, siempre se queda abajo
+        dynamicPositionClass = "bottom-5 right-6 z-[1100]";
     }
 
     return (
