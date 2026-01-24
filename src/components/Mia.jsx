@@ -64,17 +64,17 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     useEffect(() => {
         if (isMobile) {
-            if (chatState === 'half') setActiveSnapPoint(0.45);
-            if (chatState === 'full') setActiveSnapPoint(0.92);
+            if (chatState === 'half' && activeSnapPoint !== 0.45) setActiveSnapPoint(0.45);
+            if (chatState === 'full' && activeSnapPoint !== 0.92) setActiveSnapPoint(0.92);
             if (chatState === 'closed') setIsOpen(false);
         }
-    }, [chatState, isMobile, setIsOpen]);
+    }, [chatState, isMobile, setIsOpen, activeSnapPoint]);
 
     const handleSnapPointChange = (snap) => {
         if (snap === null) return;
         setActiveSnapPoint(snap);
-        if (snap === 0.45) setChatState('half');
-        if (snap === 0.92) setChatState('full');
+        if (snap === 0.45 && chatState !== 'half') setChatState('half');
+        if (snap === 0.92 && chatState !== 'full') setChatState('full');
         if (snap === 0) {
             setChatState('closed');
             setIsOpen(false);
@@ -220,7 +220,7 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     );
 
     const ChatInput = (
-        <div className={`p-4 pb-10 ${isDarkMode ? 'bg-transparent' : 'bg-transparent'} border-t ${borderSub}`}>
+        <div className={`p-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] ${isDarkMode ? 'bg-transparent' : 'bg-transparent'} border-t ${borderSub}`}>
             {selectedFile && (
                 <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
                     <div className={`${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-xl p-2 flex items-center justify-between ${backdropClass}`}>
@@ -294,10 +294,10 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
             modal={false}
         >
             <Drawer.Portal>
-                <Drawer.Content className={`${bgMain} flex flex-col rounded-t-[40px] fixed bottom-0 left-0 right-0 z-[1000] outline-none shadow-[0_-10px_40px_rgba(0,0,0,0.3)] h-full border-t border-white/10`}>
+                <Drawer.Content className={`${bgMain} flex flex-col rounded-t-[40px] fixed bottom-0 left-0 right-0 z-[1000] outline-none shadow-[0_-5px_15px_rgba(0,0,0,0.1)] h-full border-t border-white/10`}>
                     <div
                         className="flex flex-col overflow-hidden"
-                        style={{ height: activeSnapPoint ? `${activeSnapPoint * 100}dvh` : '45dvh' }}
+                        style={{ height: activeSnapPoint ? `${activeSnapPoint * 100}vh` : '45vh' }}
                     >
                         <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-white/20 mt-4 mb-2" />
 
