@@ -764,9 +764,9 @@ const Sidebar = ({
 
   // Clases para sidebar de USUARIO (pequeño, izquierda)
   const userSidebarClasses = `
-    absolute z-20 overflow-hidden will-change-transform
+    absolute z-[1200] overflow-hidden will-change-transform
     transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
-    top-4 left-4 bottom-4 w-full md:w-[380px]
+    top-4 left-4 bottom-4 w-[calc(100%-32px)] md:w-[380px]
     flex flex-col rounded-3xl border
     bg-white/85 dark:bg-[#1C1C1E]/85 backdrop-blur-xl border-white/40 dark:border-white/5
     shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]
@@ -776,9 +776,9 @@ const Sidebar = ({
 
   // Clases para sidebar de BUSINESS (pantalla completa)
   const businessSidebarClasses = `
-    absolute z-20 overflow-hidden will-change-transform
+    absolute z-[1200] overflow-hidden will-change-transform
     transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
-    top-4 left-4 right-4 bottom-4
+    top-4 left-4 bottom-4 right-4
     flex flex-col rounded-3xl border
     bg-zinc-900/95 backdrop-blur-xl border-purple-500/20
     shadow-[0_8px_32px_rgba(139,92,246,0.2)]
@@ -787,9 +787,9 @@ const Sidebar = ({
 
   // Clases para sidebar de ADMIN (pantalla completa)
   const adminSidebarClasses = `
-    absolute z-20 overflow-hidden will-change-transform
+    absolute z-[1200] overflow-hidden will-change-transform
     transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
-    top-4 left-4 right-4 bottom-4
+    top-4 left-4 bottom-4 right-4
     flex flex-col rounded-3xl border
     bg-zinc-900/95 backdrop-blur-xl border-white/10
     shadow-[0_8px_32px_rgba(0,0,0,0.5)]

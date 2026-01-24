@@ -130,6 +130,14 @@ function App() {
         }
     }, [chatState, isSidebarOpen]);
 
+    // Smart toggle: cerrar chat cuando se abre el sidebar
+    useEffect(() => {
+        if (isSidebarOpen && chatState !== 'closed') {
+            setChatState('closed');
+            setIsChatOpen(false);
+        }
+    }, [isSidebarOpen]);
+
     const handleLugarClick = (lugar) => setSelectedLugar(lugar);
     const handleAddLugar = () => setIsFormOpen(true);
     const handleMapClick = (latlng) => {
@@ -150,11 +158,10 @@ function App() {
 
     // Handler para abrir/cerrar el chatbot
     const handleToggleChat = () => {
+        // Simple toggle: si está cerrado, abrir en 'half'. Si está abierto (en cualquier estado), cerrar.
         if (chatState === 'closed') {
             setIsChatOpen(true);
             setChatState('half');
-        } else if (chatState === 'half') {
-            setChatState('full');
         } else {
             setChatState('closed');
             setIsChatOpen(false);
