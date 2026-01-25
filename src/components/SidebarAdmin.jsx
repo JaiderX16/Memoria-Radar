@@ -538,7 +538,7 @@ const SidebarAdmin = ({ lugares, onAddLugar, onDeleteLugar, setIsOpen, isOpen, d
 
     // Clases para sidebar de ADMIN (pantalla completa, estilo SidebarBusiness)
     const adminSidebarClasses = `
-    absolute z-[1200] overflow-hidden will-change-transform
+    absolute z-[20000] overflow-hidden will-change-transform
     transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
     top-4 left-4 bottom-4 right-4
     flex flex-col rounded-3xl border
