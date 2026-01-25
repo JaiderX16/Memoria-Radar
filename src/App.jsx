@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Menu } from 'lucide-react';
 import Mapa from './components/Mapa';
 import Sidebar from './components/Sidebar';
+import SidebarBusiness from './components/SidebarBusiness';
+import SidebarAdmin from './components/SidebarAdmin';
+import Profile from './components/Profile';
 import FormularioLugar from './components/FormularioLugar';
 import ChatBot from './components/Mia';
 import { useFiltrosAvanzados } from './hooks/useFiltrosAvanzados';
@@ -15,6 +19,27 @@ function App() {
     const [chatState, setChatState] = useState('closed'); // 'closed' | 'half' | 'full'
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [userRole, setUserRole] = useState('user'); // 'user' | 'business' | 'admin'
+    const [user, setUser] = useState(null); // { name, email, avatar, role }
+    const [showTools, setShowTools] = useState(true); // Controla la visibilidad del selector de roles
+    const [darkMode, setDarkMode] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('theme');
+            return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        }
+        return false;
+    });
+
+    useEffect(() => {
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [darkMode]);
+
+    const toggleDarkMode = () => setDarkMode(!darkMode);
 
     const {
         filteredLugares,
@@ -158,7 +183,6 @@ function App() {
 
     // Handler para abrir/cerrar el chatbot
     const handleToggleChat = () => {
-        // Simple toggle: si está cerrado, abrir en 'half'. Si está abierto (en cualquier estado), cerrar.
         if (chatState === 'closed') {
             setIsChatOpen(true);
             setChatState('half');
@@ -180,8 +204,61 @@ function App() {
                 chatState={chatState}
             />
 
+            {/* Top Bar Container */}
+            <div className="fixed top-6 left-0 right-0 px-6 z-[10000] flex justify-between items-center pointer-events-none">
+                {/* Left: Menu Button Container */}
+                <div className="w-[52px] pointer-events-auto">
+                    {!isSidebarOpen && (
+                        <button
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="p-3 bg-white/90 dark:bg-black/90 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 text-gray-700 dark:text-white hover:scale-105 transition-all flex items-center justify-center w-[52px] h-[52px]"
+                        >
+                            <Menu size={24} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Center: Role Selector Container */}
+                <div className="pointer-events-auto">
+                    {showTools && (
+                        <div className="flex items-center gap-1 bg-white/90 dark:bg-black/90 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border border-white/20 h-[52px]">
+                            <button
+                                onClick={() => setUserRole('user')}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'user' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                            >
+                                USER
+                            </button>
+                            <button
+                                onClick={() => setUserRole('business')}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'business' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                            >
+                                BUSINESS
+                            </button>
+                            <button
+                                onClick={() => setUserRole('admin')}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'admin' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
+                            >
+                                ADMIN
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Right: Profile Container */}
+                <div className="w-[52px] flex justify-end pointer-events-auto">
+                    <Profile
+                        user={user}
+                        setUser={setUser}
+                        showTools={showTools}
+                        setShowTools={setShowTools}
+                        darkMode={darkMode}
+                        toggleDarkMode={toggleDarkMode}
+                    />
+                </div>
+            </div>
+
             <Sidebar
-                isOpen={isSidebarOpen}
+                isOpen={isSidebarOpen && userRole === 'user'}
                 setIsOpen={setIsSidebarOpen}
                 onSearch={setSearchTerm}
                 onCategorySelect={toggleCategory}
@@ -198,32 +275,24 @@ function App() {
                 onClearFilters={clearAllFilters}
                 onSortChange={setSortBy}
                 onOrderChange={setSortOrder}
-                onAddLugar={(userRole === 'admin' || userRole === 'business') ? handleAddLugar : null}
-                onDeleteLugar={userRole === 'admin' ? handleDeleteLugar : null}
-                userRole={userRole}
             />
 
-            {/* Selector de Rol - Centrado con z-index alto */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-1 bg-white/90 dark:bg-black/90 backdrop-blur-md p-1.5 rounded-2xl shadow-lg border border-white/20">
-                <button
-                    onClick={() => setUserRole('user')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'user' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
-                >
-                    USER
-                </button>
-                <button
-                    onClick={() => setUserRole('business')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'business' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
-                >
-                    BUSINESS
-                </button>
-                <button
-                    onClick={() => setUserRole('admin')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${userRole === 'admin' ? 'bg-red-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'}`}
-                >
-                    ADMIN
-                </button>
-            </div>
+            <SidebarBusiness
+                isOpen={isSidebarOpen && userRole === 'business'}
+                setIsOpen={setIsSidebarOpen}
+                lugares={filteredLugares}
+                onAddLugar={handleAddLugar}
+            />
+
+            <SidebarAdmin
+                isOpen={isSidebarOpen && userRole === 'admin'}
+                setIsOpen={setIsSidebarOpen}
+                lugares={filteredLugares}
+                onAddLugar={handleAddLugar}
+                onDeleteLugar={handleDeleteLugar}
+                darkMode={darkMode}
+                toggleDarkMode={toggleDarkMode}
+            />
 
             {/* MIA ChatBot Component */}
             <ChatBot
