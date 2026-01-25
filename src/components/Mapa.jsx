@@ -13,7 +13,7 @@ import {
 } from './MapLibre';
 import { Info, MessageSquare } from 'lucide-react';
 
-export default function Mapa({ onToggleChat, chatState }) {
+export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, selectedLugar, onToggleChat, chatState }) {
   const mapRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
   const [isMarkerVisible, setIsMarkerVisible] = useState(true);
@@ -114,7 +114,10 @@ export default function Mapa({ onToggleChat, chatState }) {
           chatState={chatState}
         >
           <ControlGroup>
-            <ControlButton onClick={onToggleChat} label="Abrir Chat">
+            <ControlButton
+              onClick={onToggleChat}
+              label={chatState === 'closed' ? 'Abrir Chat' : 'Cerrar Chat'}
+            >
               <MessageSquare className="size-4" />
             </ControlButton>
           </ControlGroup>
