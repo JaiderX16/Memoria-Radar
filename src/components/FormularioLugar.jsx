@@ -26,24 +26,38 @@ const INITIAL_FORM_STATE = {
 };
 
 // Estilos compartidos
-const INPUT_CLASSES = "w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-600 outline-none transition-all";
+const INPUT_CLASSES = "w-full bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 rounded-2xl py-3.5 px-4 text-white placeholder-zinc-500 outline-none transition-all font-medium";
 
-const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
+const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData }) => {
     const [formData, setFormData] = useState(INITIAL_FORM_STATE);
     const [imagePreview, setImagePreview] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [errors, setErrors] = useState({});
 
-    // Actualizar coordenadas cuando cambian
+    // Actualizar datos cuando cambian (para edición o nuevas coordenadas)
     useEffect(() => {
-        if (initialCoords) {
+        if (initialData) {
+            setFormData({
+                nombre: initialData.nombre || '',
+                latitud: initialData.latitud || '',
+                longitud: initialData.longitud || '',
+                descripcion: initialData.descripcion || '',
+                website: initialData.website || '',
+                categoria: initialData.categoria || 'monumentos',
+                color: initialData.color || 'blue'
+            });
+            setImagePreview(initialData.imagen || null);
+        } else if (initialCoords) {
             setFormData(prev => ({
                 ...prev,
                 latitud: initialCoords.lat,
                 longitud: initialCoords.lng
             }));
+        } else {
+            setFormData(INITIAL_FORM_STATE);
+            setImagePreview(null);
         }
-    }, [initialCoords]);
+    }, [initialData, initialCoords, isOpen]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -112,7 +126,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
         const colorHex = COLORES.find(c => c.id === formData.color)?.hex || '#3b82f6';
 
         const nuevoLugar = {
-            id: Date.now(),
+            id: initialData?.id || Date.now(),
             nombre: formData.nombre.trim(),
             latitud: lat,
             longitud: lng,
@@ -143,7 +157,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[10001] p-4 animate-in fade-in duration-300">
-            <div className="bg-zinc-900/95 border border-white/10 rounded-3xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="bg-zinc-900/95 border border-white/10 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
 
                 {/* Header */}
                 <div className="relative p-8 pb-6 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent flex-shrink-0">
@@ -153,8 +167,12 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                                 <MapPin className="w-6 h-6 text-blue-400" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-white tracking-tight">Nuevo Lugar</h2>
-                                <p className="text-zinc-500 text-sm font-medium">Completa los detalles del punto</p>
+                                <h2 className="text-2xl font-bold text-white tracking-tight">
+                                    {initialData ? 'Editar Lugar' : 'Nuevo Lugar'}
+                                </h2>
+                                <p className="text-zinc-500 text-sm font-medium">
+                                    {initialData ? 'Modifica los detalles del punto' : 'Completa los detalles del punto'}
+                                </p>
                             </div>
                         </div>
                         <button
@@ -167,7 +185,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto no-scrollbar flex-grow">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto scrollbar-hide flex-grow">
 
                     {/* Nombre */}
                     <div className="space-y-2">
@@ -365,7 +383,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords }) => {
                             className="flex-1 py-4 px-6 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2"
                         >
                             <Save size={18} />
-                            Guardar
+                            {initialData ? 'Guardar Cambios' : 'Guardar'}
                         </button>
                     </div>
                 </form>
