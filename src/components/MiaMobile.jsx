@@ -29,6 +29,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Estados para detección de teclado
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+    const maxHeightRef = useRef(window.innerHeight);
 
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -38,28 +39,33 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     // Detectar teclado en móvil
     useEffect(() => {
-        const initialHeight = window.innerHeight;
-        setViewportHeight(initialHeight);
+        // Inicializar
+        const updateMaxHeight = () => {
+            const currentHeight = window.visualViewport?.height || window.innerHeight;
+            if (currentHeight > maxHeightRef.current) {
+                maxHeightRef.current = currentHeight;
+            }
+        };
+        updateMaxHeight();
 
         const handleResize = () => {
             const currentHeight = window.visualViewport?.height || window.innerHeight;
-            const heightDiff = initialHeight - currentHeight;
 
-            console.log('📱 Keyboard Detection:', {
-                initialHeight,
-                currentHeight,
-                heightDiff,
-                keyboardVisible: heightDiff > 150
-            });
-
-            // Si la diferencia es mayor a 150px, asumimos que el teclado está visible
-            if (heightDiff > 150) {
-                setKeyboardVisible(true);
-                setViewportHeight(currentHeight);
-            } else {
-                setKeyboardVisible(false);
-                setViewportHeight(initialHeight);
+            // Actualizar max height si vemos una altura mayor (ej. barra de dirección se oculta)
+            if (currentHeight > maxHeightRef.current) {
+                maxHeightRef.current = currentHeight;
             }
+
+            const diff = maxHeightRef.current - currentHeight;
+
+            // Umbral de 150px para considerar teclado abierto
+            const isKeyboard = diff > 150;
+
+            setKeyboardVisible(isKeyboard);
+
+            // Si el teclado está visible, usamos la altura actual.
+            // Si no, usamos la altura máxima registrada (para evitar saltos por barra de dirección).
+            setViewportHeight(isKeyboard ? currentHeight : maxHeightRef.current);
         };
 
         // Escuchar cambios en el visual viewport (más preciso para teclados)
@@ -142,7 +148,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     // Estilos
     const bgMain = isDarkMode ? 'bg-[#121214]' : 'bg-white';
-    const backdropClass = 'backdrop-blur-md';
+    const backdropClass = '';
     const textMain = isDarkMode ? 'text-white' : 'text-gray-900';
     const textSub = isDarkMode ? 'text-gray-400' : 'text-gray-500';
     const borderSub = isDarkMode ? 'border-white/10' : 'border-gray-200/50';
@@ -186,7 +192,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         // Solo permitir botón izquierdo del mouse o toque
         if (e.button !== 0) return;
 
-        console.log('👇 Pointer Down');
         setIsDragging(true);
         dragStartY.current = e.clientY;
         dragStartHeight.current = currentHeight;
@@ -203,8 +208,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         const deltaY = dragStartY.current - currentY; // Arriba es positivo
         const newHeight = dragStartHeight.current + deltaY;
 
-        console.log('MOVE:', { deltaY, newHeight });
-
         const maxHeight = window.innerHeight * 0.95;
         const minHeight = 0;
 
@@ -214,7 +217,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     };
 
     const handlePointerUp = (e) => {
-        console.log('👆 Pointer Up');
         setIsDragging(false);
 
         // Liberar captura
