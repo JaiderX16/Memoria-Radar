@@ -28,10 +28,14 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     // Estados para detección de teclado
     const [keyboardVisible, setKeyboardVisible] = useState(false);
-    const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+    // Usamos viewportHeight para saber el tamaño disponible (útil para cuando el teclado está abierto)
+    const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
 
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const containerRef = useRef(null);
+    const dragCurrentHeight = useRef(0);
+    const animationFrameId = useRef(null);
 
     const isDarkMode = true;
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
@@ -39,37 +43,33 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Detectar teclado en móvil
     useEffect(() => {
         const initialHeight = window.innerHeight;
-        setViewportHeight(initialHeight);
 
         const handleResize = () => {
-            const currentHeight = window.visualViewport?.height || window.innerHeight;
-            const heightDiff = initialHeight - currentHeight;
+            const currentVisualHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            // Si hay una diferencia significativa entre el alto inicial y el viewport visual, es probable que esté el teclado
+            // Con interactive-widget=resizes-content, window.innerHeight también debería cambiar en muchos navegadores modernos
+            const isKeyboardOpen = currentVisualHeight < initialHeight * 0.85; // Umbral del 85%
 
-            console.log('📱 Keyboard Detection:', {
-                initialHeight,
-                currentHeight,
-                heightDiff,
-                keyboardVisible: heightDiff > 150
-            });
-
-            // Si la diferencia es mayor a 150px, asumimos que el teclado está visible
-            if (heightDiff > 150) {
-                setKeyboardVisible(true);
-                setViewportHeight(currentHeight);
-            } else {
-                setKeyboardVisible(false);
-                setViewportHeight(initialHeight);
-            }
+            setKeyboardVisible(isKeyboardOpen);
+            setViewportHeight(currentVisualHeight);
         };
 
-        // Escuchar cambios en el visual viewport (más preciso para teclados)
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', handleResize);
-            return () => window.visualViewport.removeEventListener('resize', handleResize);
+            // También escuchar scroll, ya que a veces el teclado empuja el contenido
+            window.visualViewport.addEventListener('scroll', handleResize);
         } else {
             window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
         }
+
+        return () => {
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', handleResize);
+                window.visualViewport.removeEventListener('scroll', handleResize);
+            } else {
+                window.removeEventListener('resize', handleResize);
+            }
+        };
     }, []);
 
     // Scroll al fondo
@@ -81,7 +81,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         if (isOpen) {
             setTimeout(scrollToBottom, 100);
         }
-    }, [messages, isTyping, selectedFile, isRecording, isOpen]);
+    }, [messages, isTyping, selectedFile, isRecording, isOpen, keyboardVisible]);
 
     // Enviar mensaje
     const handleSendMessage = async (e) => {
@@ -154,12 +154,13 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Calcular altura basada en el estado (para cuando no se está arrastrando)
     const getTargetHeight = () => {
         if (chatState === 'closed') return 0;
+        // Si el teclado está visible, usamos toda la altura disponible del viewport visual
         if (keyboardVisible) return viewportHeight;
         if (chatState === 'full') return window.innerHeight * 0.92;
         return window.innerHeight * 0.45;
     };
 
-    // Estado para la altura dinámica (animaciones y drag)
+    // Estado para la altura (utilizado para inicialización y transiciones no interactivas)
     const [currentHeight, setCurrentHeight] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const dragStartY = useRef(0);
@@ -168,7 +169,9 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Sincronizar altura cuando cambia el estado (y no se está arrastrando)
     useEffect(() => {
         if (!isDragging) {
-            setCurrentHeight(getTargetHeight());
+            const target = getTargetHeight();
+            setCurrentHeight(target);
+            dragCurrentHeight.current = target; // Sincronizar ref también
         }
     }, [chatState, keyboardVisible, viewportHeight, isDragging]);
 
@@ -186,51 +189,69 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         // Solo permitir botón izquierdo del mouse o toque
         if (e.button !== 0) return;
 
-        console.log('👇 Pointer Down');
         setIsDragging(true);
         dragStartY.current = e.clientY;
-        dragStartHeight.current = currentHeight;
+        dragStartHeight.current = dragCurrentHeight.current; // Usar el valor actual del ref
 
-        // Capturar el puntero para que no se pierda el arrastre si se mueve rápido
+        // Capturar el puntero
         e.currentTarget.setPointerCapture(e.pointerId);
     };
 
     const handlePointerMove = (e) => {
         if (!isDragging) return;
-        e.preventDefault(); // Prevenir selección de texto o comportamientos raros
+        e.preventDefault();
 
         const currentY = e.clientY;
         const deltaY = dragStartY.current - currentY; // Arriba es positivo
         const newHeight = dragStartHeight.current + deltaY;
 
-        console.log('MOVE:', { deltaY, newHeight });
-
         const maxHeight = window.innerHeight * 0.95;
         const minHeight = 0;
 
         if (newHeight >= minHeight && newHeight <= maxHeight) {
-            setCurrentHeight(newHeight);
+            dragCurrentHeight.current = newHeight;
+
+            // Usar requestAnimationFrame para actualizar el DOM directamente sin re-renders de React
+            if (animationFrameId.current) {
+                cancelAnimationFrame(animationFrameId.current);
+            }
+
+            animationFrameId.current = requestAnimationFrame(() => {
+                if (containerRef.current) {
+                    containerRef.current.style.height = `${newHeight}px`;
+                    containerRef.current.style.transition = 'none'; // Desactivar transición durante arrastre
+                }
+            });
         }
     };
 
     const handlePointerUp = (e) => {
-        console.log('👆 Pointer Up');
         setIsDragging(false);
 
         // Liberar captura
         e.currentTarget.releasePointerCapture(e.pointerId);
 
+        // Limpiar animation frame pendiente
+        if (animationFrameId.current) {
+            cancelAnimationFrame(animationFrameId.current);
+        }
+
         const screenHeight = window.innerHeight;
-        const heightPercentage = currentHeight / screenHeight;
+        // Usar la altura actual del ref
+        const finalHeight = dragCurrentHeight.current;
+        const heightPercentage = finalHeight / screenHeight;
 
         // Lógica de Snap
         if (heightPercentage < 0.25) {
             setChatState('closed');
             setIsOpen(false);
+            setCurrentHeight(0);
         } else if (heightPercentage < 0.70) {
             setChatState('half');
+            // Dejar que useEffect actualice height basado en 'half'
         } else {
             setChatState('full');
+            // Dejar que useEffect actualice height basado en 'full'
         }
     };
 
@@ -238,10 +259,13 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     return (
         <div
+            ref={containerRef}
             className={`fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t border-white/10 overflow-hidden ${bgMain}`}
             style={{
                 height: `${currentHeight}px`,
-                transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+                // Si estamos arrastrando, desactivamos la transición (aunque ya se hace inline en move, esto es backup)
+                // Si el teclado está visible (o abriéndose), desactivamos la transición para seguir el resize del viewport sin lag
+                transition: (isDragging || keyboardVisible) ? 'none' : 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
             }}
         >
             {/* Handle visual + Área de arrastre */}
@@ -251,7 +275,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp} // Manejar interrupciones
+                onPointerCancel={handlePointerUp}
             >
                 <div className="w-16 h-1.5 rounded-full bg-gray-300/50 dark:bg-white/20 pointer-events-none" />
             </div>
