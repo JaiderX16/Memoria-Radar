@@ -43,23 +43,8 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
         const handleResize = () => {
             const currentHeight = window.visualViewport?.height || window.innerHeight;
-            const heightDiff = initialHeight - currentHeight;
-
-            console.log('📱 Keyboard Detection:', {
-                initialHeight,
-                currentHeight,
-                heightDiff,
-                keyboardVisible: heightDiff > 150
-            });
-
-            // Si la diferencia es mayor a 150px, asumimos que el teclado está visible
-            if (heightDiff > 150) {
-                setKeyboardVisible(true);
-                setViewportHeight(currentHeight);
-            } else {
-                setKeyboardVisible(false);
-                setViewportHeight(initialHeight);
-            }
+            setViewportHeight(currentHeight);
+            setKeyboardVisible((initialHeight - currentHeight) > 150);
         };
 
         // Escuchar cambios en el visual viewport (más preciso para teclados)
@@ -186,7 +171,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         // Solo permitir botón izquierdo del mouse o toque
         if (e.button !== 0) return;
 
-        console.log('👇 Pointer Down');
         setIsDragging(true);
         dragStartY.current = e.clientY;
         dragStartHeight.current = currentHeight;
@@ -203,8 +187,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         const deltaY = dragStartY.current - currentY; // Arriba es positivo
         const newHeight = dragStartHeight.current + deltaY;
 
-        console.log('MOVE:', { deltaY, newHeight });
-
         const maxHeight = window.innerHeight * 0.95;
         const minHeight = 0;
 
@@ -214,7 +196,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     };
 
     const handlePointerUp = (e) => {
-        console.log('👆 Pointer Up');
         setIsDragging(false);
 
         // Liberar captura
