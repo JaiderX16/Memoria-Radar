@@ -26,51 +26,11 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
 
-    // Estados para detección de teclado
-    const [keyboardVisible, setKeyboardVisible] = useState(false);
-    const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
-
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
     const isDarkMode = true;
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
-
-    // Detectar teclado en móvil
-    useEffect(() => {
-        const initialHeight = window.innerHeight;
-        setViewportHeight(initialHeight);
-
-        const handleResize = () => {
-            const currentHeight = window.visualViewport?.height || window.innerHeight;
-            const heightDiff = initialHeight - currentHeight;
-
-            console.log('📱 Keyboard Detection:', {
-                initialHeight,
-                currentHeight,
-                heightDiff,
-                keyboardVisible: heightDiff > 150
-            });
-
-            // Si la diferencia es mayor a 150px, asumimos que el teclado está visible
-            if (heightDiff > 150) {
-                setKeyboardVisible(true);
-                setViewportHeight(currentHeight);
-            } else {
-                setKeyboardVisible(false);
-                setViewportHeight(initialHeight);
-            }
-        };
-
-        // Escuchar cambios en el visual viewport (más preciso para teclados)
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', handleResize);
-            return () => window.visualViewport.removeEventListener('resize', handleResize);
-        } else {
-            window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
-        }
-    }, []);
 
     // Scroll al fondo
     const scrollToBottom = () => {
@@ -142,7 +102,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     // Estilos
     const bgMain = isDarkMode ? 'bg-[#121214]' : 'bg-white';
-    const backdropClass = 'backdrop-blur-md';
+    const backdropClass = ''; // Disabled blur for performance
     const textMain = isDarkMode ? 'text-white' : 'text-gray-900';
     const textSub = isDarkMode ? 'text-gray-400' : 'text-gray-500';
     const borderSub = isDarkMode ? 'border-white/10' : 'border-gray-200/50';
@@ -154,7 +114,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Calcular altura basada en el estado (para cuando no se está arrastrando)
     const getTargetHeight = () => {
         if (chatState === 'closed') return 0;
-        if (keyboardVisible) return viewportHeight;
         if (chatState === 'full') return window.innerHeight * 0.92;
         return window.innerHeight * 0.45;
     };
@@ -165,12 +124,23 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     const dragStartY = useRef(0);
     const dragStartHeight = useRef(0);
 
+    // Update height on resize (e.g., keyboard open/close)
+    useEffect(() => {
+        const handleResize = () => {
+            if (!isDragging) {
+                setCurrentHeight(getTargetHeight());
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [chatState, isDragging]);
+
     // Sincronizar altura cuando cambia el estado (y no se está arrastrando)
     useEffect(() => {
         if (!isDragging) {
             setCurrentHeight(getTargetHeight());
         }
-    }, [chatState, keyboardVisible, viewportHeight, isDragging]);
+    }, [chatState, isDragging]);
 
     // Sincronizar chatState con isOpen (para asegurar consistencia)
     useEffect(() => {
@@ -186,7 +156,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         // Solo permitir botón izquierdo del mouse o toque
         if (e.button !== 0) return;
 
-        console.log('👇 Pointer Down');
         setIsDragging(true);
         dragStartY.current = e.clientY;
         dragStartHeight.current = currentHeight;
@@ -203,8 +172,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         const deltaY = dragStartY.current - currentY; // Arriba es positivo
         const newHeight = dragStartHeight.current + deltaY;
 
-        console.log('MOVE:', { deltaY, newHeight });
-
         const maxHeight = window.innerHeight * 0.95;
         const minHeight = 0;
 
@@ -214,7 +181,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     };
 
     const handlePointerUp = (e) => {
-        console.log('👆 Pointer Up');
         setIsDragging(false);
 
         // Liberar captura
@@ -300,7 +266,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
             {/* Input Area */}
             <div className="mt-auto bg-inherit">
-                <div className={`p-4 ${keyboardVisible ? 'pb-4' : 'pb-10'} ${isDarkMode ? 'bg-transparent' : 'bg-transparent'} border-t ${borderSub} transition-all duration-300`}>
+                <div className={`p-4 pb-4 ${isDarkMode ? 'bg-transparent' : 'bg-transparent'} border-t ${borderSub} transition-all duration-300`}>
                     {selectedFile && (
                         <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
                             <div className={`${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-xl p-2 flex items-center justify-between ${backdropClass}`}>
@@ -334,6 +300,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                                 type="text"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
+                                onFocus={() => setChatState('full')}
                                 placeholder="Escribe un mensaje..."
                                 className={`w-full ${isDarkMode ? 'bg-[#1c1c1e]/50 border-white/10 text-white placeholder-gray-500' : 'bg-gray-100 border-transparent text-gray-900'} border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all ${backdropClass}`}
                             />
