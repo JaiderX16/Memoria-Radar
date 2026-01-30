@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     X, ChevronLeft, ChevronRight, User, Mail, FileText, Lock, Eye, EyeOff,
     CreditCard, Check, Bell, Shield, HelpCircle, LogOut, Sun, Moon, Camera,
-    UserCircle, Save, Plus
+    UserCircle, Save, Plus, Map
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 
@@ -132,6 +132,97 @@ const ViewPrivacy = ({ theme, isDarkMode }) => {
     );
 };
 
+const ViewAppearance = ({ theme, mapTheme, setMapTheme, isDarkMode, toggleTheme, starrySky, setStarrySky }) => {
+    const mapThemes = [
+        { id: 'standard', label: 'Estándar', color: isDarkMode ? 'bg-[#242f3e]' : 'bg-[#f0f0f0]' },
+        { id: 'satellite', label: 'Satélite', color: 'bg-[url("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/6/4")] bg-cover' },
+        { id: 'hybrid', label: 'Híbrido', color: 'bg-[url("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/6/4")] bg-cover' },
+    ];
+
+    return (
+        <div className="px-6 py-6 animate-in slide-in-from-right duration-300 space-y-8">
+            {/* App Theme Section */}
+            <div className="space-y-3">
+                <h4 className={`text-xs font-black uppercase tracking-widest opacity-40 ${theme.text}`}>Tema de la Aplicación</h4>
+                <div className="grid grid-cols-2 gap-4">
+                    <button
+                        onClick={() => !isDarkMode && toggleTheme()}
+                        className={`relative p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${isDarkMode ? 'border-blue-500 bg-white/5' : 'border-black/5 hover:border-black/20'}`}
+                    >
+                        <div className="p-3 rounded-full bg-white/10 text-white">
+                            <Moon size={24} strokeWidth={2} />
+                        </div>
+                        <span className={`text-sm font-bold ${theme.text}`}>Oscuro</span>
+                        {isDarkMode && <div className="absolute top-3 right-3 text-blue-500"><Check size={16} strokeWidth={4} /></div>}
+                    </button>
+                    <button
+                        onClick={() => isDarkMode && toggleTheme()}
+                        className={`relative p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${!isDarkMode ? 'border-blue-500 bg-black/5' : 'border-white/5 hover:border-white/20'}`}
+                    >
+                        <div className="p-3 rounded-full bg-black/10 text-black">
+                            <Sun size={24} strokeWidth={2} />
+                        </div>
+                        <span className={`text-sm font-bold ${theme.text}`}>Claro</span>
+                        {!isDarkMode && <div className="absolute top-3 right-3 text-blue-500"><Check size={16} strokeWidth={4} /></div>}
+                    </button>
+                </div>
+            </div>
+
+            {/* Map Style Section */}
+            <div className="space-y-3">
+                <h4 className={`text-xs font-black uppercase tracking-widest opacity-40 ${theme.text}`}>Estilo del Mapa</h4>
+                <div className="grid grid-cols-3 gap-3">
+                    {mapThemes.map((t) => (
+                        <button
+                            key={t.id}
+                            onClick={() => setMapTheme(t.id)}
+                            className={`relative group flex flex-col items-center gap-2 p-1 rounded-2xl transition-all ${mapTheme === t.id ? 'ring-2 ring-blue-500 scale-[1.02]' : 'hover:scale-[1.02] opacity-70 hover:opacity-100'}`}
+                        >
+                            <div className={`w-full aspect-square rounded-xl shadow-lg overflow-hidden border-2 ${isDarkMode ? 'border-white/10' : 'border-black/5'} ${t.color}`}>
+                                {/* Overlay para híbrido */}
+                                {t.id === 'hybrid' && (
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                        <div className="text-white/80 font-bold text-[8px] tracking-widest border border-white/50 px-1 py-0.5 rounded">LABELS</div>
+                                    </div>
+                                )}
+                                {t.id === 'standard' && (
+                                    <div className="w-full h-full flex flex-col p-3">
+                                        <div className={`w-full h-1.5 rounded-full mb-1.5 ${isDarkMode ? 'bg-white/20' : 'bg-black/10'}`}></div>
+                                        <div className={`w-2/3 h-1.5 rounded-full mb-1.5 ${isDarkMode ? 'bg-white/20' : 'bg-black/10'}`}></div>
+                                        <div className={`w-1/2 h-1.5 rounded-full ${isDarkMode ? 'bg-blue-500' : 'bg-blue-500'}`}></div>
+                                    </div>
+                                )}
+                            </div>
+                            <span className={`text-[10px] font-bold ${theme.text}`}>{t.label}</span>
+                            {mapTheme === t.id && (
+                                <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-0.5">
+                                    <Check size={10} strokeWidth={4} />
+                                </div>
+                            )}
+                        </button>
+                    ))}
+                </div>
+                <p className={`text-[10px] opacity-50 ${theme.text}`}>
+                    El modo satélite utiliza imágenes de Esri. El estándar se adapta al tema.
+                </p>
+            </div>
+
+            {/* Starry Sky Toggle */}
+            <div className="space-y-3">
+                <h4 className={`text-xs font-black uppercase tracking-widest opacity-40 ${theme.text}`}>Efectos</h4>
+                <SwitchItem
+                    label="Cielo Estrellado"
+                    description="Fondo de espacio profundo"
+                    active={starrySky}
+                    onToggle={() => setStarrySky(!starrySky)}
+                    theme={theme}
+                    isDarkMode={isDarkMode}
+                />
+            </div>
+        </div>
+    );
+};
+
 const ViewHelp = ({ theme, isDarkMode, showToast }) => {
     const FAQItem = ({ q, a }) => (
         <details className={`group p-4 rounded-2xl mb-2 transition-colors bg-black/5 dark:bg-white/5`}><summary className={`font-bold text-sm cursor-pointer list-none flex justify-between items-center ${theme.text}`}>{q} <ChevronRight size={16} className="transform group-open:rotate-90 transition-transform" /></summary><p className={`text-xs mt-2 opacity-70 leading-relaxed ${theme.text}`}>{a}</p></details>
@@ -148,7 +239,7 @@ const ViewHelp = ({ theme, isDarkMode, showToast }) => {
     );
 };
 
-const ProfileMenu = ({ user, onClose, onLogout, isDarkMode, toggleTheme, theme, showToast, onUpdateUser, onViewImage, onOpenEditor, showTools, setShowTools }) => {
+const ProfileMenu = ({ user, onClose, onLogout, isDarkMode, toggleTheme, theme, showToast, onUpdateUser, onViewImage, onOpenEditor, showTools, setShowTools, mapTheme, setMapTheme, starrySky, setStarrySky }) => {
     const [view, setView] = useState('main');
 
     const handleProfileUpdate = (updatedUser, msg = 'Perfil actualizado') => {
@@ -169,6 +260,7 @@ const ProfileMenu = ({ user, onClose, onLogout, isDarkMode, toggleTheme, theme, 
             case 'profile': return <><SubMenuHeader title="Mi Perfil" onBack={() => setView('main')} theme={theme} /><ViewProfile user={user} theme={theme} onSave={handleProfileUpdate} isDarkMode={isDarkMode} onViewImage={onViewImage} onUpdateImage={(newImg) => onUpdateUser({ avatar: newImg })} onOpenEditor={onOpenEditor} /></>;
             case 'payments': return <><SubMenuHeader title="Pagos" onBack={() => setView('main')} theme={theme} /><ViewPayments theme={theme} onAdd={() => showToast('Abriendo pasarela...')} /></>;
             case 'notifications': return <><SubMenuHeader title="Notificaciones" onBack={() => setView('main')} theme={theme} /><ViewNotifications theme={theme} isDarkMode={isDarkMode} /></>;
+            case 'appearance': return <><SubMenuHeader title="Apariencia" onBack={() => setView('main')} theme={theme} /><ViewAppearance theme={theme} mapTheme={mapTheme} setMapTheme={setMapTheme} isDarkMode={isDarkMode} toggleTheme={toggleTheme} starrySky={starrySky} setStarrySky={setStarrySky} /></>;
             case 'privacy': return <><SubMenuHeader title="Privacidad" onBack={() => setView('main')} theme={theme} /><ViewPrivacy theme={theme} isDarkMode={isDarkMode} /></>;
             case 'help': return <><SubMenuHeader title="Ayuda" onBack={() => setView('main')} theme={theme} /><ViewHelp theme={theme} isDarkMode={isDarkMode} showToast={showToast} /></>;
             default:
@@ -190,7 +282,7 @@ const ProfileMenu = ({ user, onClose, onLogout, isDarkMode, toggleTheme, theme, 
                         </div>
                         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-1 scrollbar-hide">
                             <div className={`text-[10px] font-black uppercase tracking-widest mb-2 pl-2 opacity-40 ${theme.text}`}>General</div>
-                            <MenuItem icon={isDarkMode ? Sun : Moon} label="Apariencia" subLabel={`Tema: ${isDarkMode ? 'Oscuro' : 'Claro'}`} action={toggleTheme} />
+                            <MenuItem icon={isDarkMode ? Moon : Sun} label="Apariencia" subLabel="Tema y Mapa" action={() => setView('appearance')} />
 
                             {/* Show Tools Toggle */}
                             <div className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all group mb-1 ${isDarkMode ? 'text-white hover:bg-white/10' : 'text-black hover:bg-black/5'}`}>

@@ -21,6 +21,8 @@ function App() {
     const [userRole, setUserRole] = useState('user'); // 'user' | 'business' | 'admin'
     const [user, setUser] = useState(null); // { name, email, avatar, role }
     const [showTools, setShowTools] = useState(true); // Controla la visibilidad del selector de roles
+    const [mapTheme, setMapTheme] = useState('standard'); // 'standard' | 'satellite' | 'hybrid'
+    const [starrySky, setStarrySky] = useState(false); // Toggle para cielo estrellado
     const [darkMode, setDarkMode] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('theme');
@@ -32,9 +34,11 @@ function App() {
     useEffect(() => {
         if (darkMode) {
             document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
             localStorage.setItem('theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
             localStorage.setItem('theme', 'light');
         }
     }, [darkMode]);
@@ -202,6 +206,8 @@ function App() {
                 selectedLugar={selectedLugar}
                 onToggleChat={handleToggleChat}
                 chatState={chatState}
+                mapTheme={mapTheme}
+                starrySky={starrySky}
             />
 
             {/* Top Bar Container */}
@@ -251,6 +257,10 @@ function App() {
                         setUser={setUser}
                         showTools={showTools}
                         setShowTools={setShowTools}
+                        mapTheme={mapTheme}
+                        setMapTheme={setMapTheme}
+                        starrySky={starrySky}
+                        setStarrySky={setStarrySky}
                         darkMode={darkMode}
                         toggleDarkMode={toggleDarkMode}
                     />

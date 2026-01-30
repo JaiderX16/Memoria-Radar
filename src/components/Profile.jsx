@@ -7,7 +7,7 @@ import ImageViewer from './Profile/ImageViewer';
 import ProfileMenu from './Profile/ProfileMenu';
 import AuthScreen from './Profile/AuthScreen';
 
-const Profile = ({ user, setUser, showTools, setShowTools, darkMode, toggleDarkMode }) => {
+const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme, starrySky, setStarrySky, darkMode, toggleDarkMode }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [toast, setToast] = useState(null);
     const [viewingImage, setViewingImage] = useState(null); // { src, name }
@@ -133,6 +133,10 @@ const Profile = ({ user, setUser, showTools, setShowTools, darkMode, toggleDarkM
                             onOpenEditor={handleOpenEditor}
                             showTools={showTools}
                             setShowTools={setShowTools}
+                            mapTheme={mapTheme}
+                            setMapTheme={setMapTheme}
+                            starrySky={starrySky}
+                            setStarrySky={setStarrySky}
                         />
                     ) : (
                         <div className="flex-1 h-full flex flex-col justify-center pt-16 md:pt-10">
