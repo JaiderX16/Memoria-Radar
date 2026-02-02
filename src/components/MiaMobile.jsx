@@ -26,50 +26,10 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
 
-    // Estados para detección de teclado
-    const [keyboardVisible, setKeyboardVisible] = useState(false);
-    const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
-
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
-
-    // Detectar teclado en móvil
-    useEffect(() => {
-        const initialHeight = window.innerHeight;
-        setViewportHeight(initialHeight);
-
-        const handleResize = () => {
-            const currentHeight = window.visualViewport?.height || window.innerHeight;
-            const heightDiff = initialHeight - currentHeight;
-
-            console.log('📱 Keyboard Detection:', {
-                initialHeight,
-                currentHeight,
-                heightDiff,
-                keyboardVisible: heightDiff > 150
-            });
-
-            // Si la diferencia es mayor a 150px, asumimos que el teclado está visible
-            if (heightDiff > 150) {
-                setKeyboardVisible(true);
-                setViewportHeight(currentHeight);
-            } else {
-                setKeyboardVisible(false);
-                setViewportHeight(initialHeight);
-            }
-        };
-
-        // Escuchar cambios en el visual viewport (más preciso para teclados)
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', handleResize);
-            return () => window.visualViewport.removeEventListener('resize', handleResize);
-        } else {
-            window.addEventListener('resize', handleResize);
-            return () => window.removeEventListener('resize', handleResize);
-        }
-    }, []);
 
     // Scroll al fondo
     const scrollToBottom = () => {
@@ -142,8 +102,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Calcular altura basada en el estado (para cuando no se está arrastrando)
     const getTargetHeight = () => {
         if (chatState === 'closed') return 0;
-        if (keyboardVisible) return viewportHeight;
-        if (chatState === 'full') return window.innerHeight * 0.92;
+        if (chatState === 'full') return window.innerHeight * 0.95; // Increased slightly for full coverage minus some padding
         return window.innerHeight * 0.45;
     };
 
@@ -153,12 +112,23 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     const dragStartY = useRef(0);
     const dragStartHeight = useRef(0);
 
+    // Update target height on window resize (e.g. keyboard open/close)
+    useEffect(() => {
+        const handleResize = () => {
+            if (!isDragging) {
+                setCurrentHeight(getTargetHeight());
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [chatState, isDragging]);
+
     // Sincronizar altura cuando cambia el estado (y no se está arrastrando)
     useEffect(() => {
         if (!isDragging) {
             setCurrentHeight(getTargetHeight());
         }
-    }, [chatState, keyboardVisible, viewportHeight, isDragging]);
+    }, [chatState, isDragging]);
 
     // Sincronizar chatState con isOpen (para asegurar consistencia)
     useEffect(() => {
@@ -193,7 +163,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
         console.log('MOVE:', { deltaY, newHeight });
 
-        const maxHeight = window.innerHeight * 0.95;
+        const maxHeight = window.innerHeight * 0.98;
         const minHeight = 0;
 
         if (newHeight >= minHeight && newHeight <= maxHeight) {
@@ -234,19 +204,19 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         >
             {/* Handle visual + Área de arrastre */}
             <div
-                className="w-full flex justify-center pt-6 pb-4 cursor-grab active:cursor-grabbing z-50"
+                className="w-full flex justify-center pt-6 pb-4 cursor-grab active:cursor-grabbing z-50 bg-white dark:bg-[#121214]"
                 style={{ touchAction: 'none' }} // CRÍTICO: Le dice al navegador que no haga scroll nativo
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp} // Manejar interrupciones
             >
-                <div className="w-16 h-1.5 rounded-full bg-gray-300/50 dark:bg-white/20 pointer-events-none" />
+                <div className="w-16 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 pointer-events-none" />
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-hidden flex flex-col relative">
-                <div className="flex-1 overflow-y-auto px-4 space-y-4 scrollbar-hide py-4" onClick={() => setShowEmojiPicker(false)}>
+            <div className="flex-1 overflow-hidden flex flex-col relative bg-white dark:bg-[#121214]">
+                <div className="flex-1 overflow-y-auto px-4 space-y-4 scrollbar-hide py-4 overscroll-y-contain" onClick={() => setShowEmojiPicker(false)}>
                     <div className={`text-center text-[10px] text-gray-500 dark:text-gray-400 font-bold my-4 uppercase tracking-widest opacity-50`}>HOY</div>
 
                     {messages.map((msg) => {
@@ -254,12 +224,12 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                         return (
                             <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
                                 {msg.type === 'text' && (
-                                    <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-2xl rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-2xl rounded-tl-none'}`}>
+                                    <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-2xl rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-2xl rounded-tl-none'}`}>
                                         {msg.text}
                                     </div>
                                 )}
                                 {msg.type === 'file' && (
-                                    <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-tl-none'}`}>
+                                    <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-tl-none'}`}>
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : 'bg-white dark:bg-gray-700/50'}`}>
                                             {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={16} />}
                                         </div>
@@ -275,7 +245,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
                     {isTyping && (
                         <div className="flex items-start">
-                            <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-[#E9E9EB] dark:bg-[#262626]`}>
+                            <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center bg-[#E9E9EB] dark:bg-[#262626]`}>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -287,11 +257,11 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
             </div>
 
             {/* Input Area */}
-            <div className="mt-auto bg-inherit">
-                <div className={`p-4 ${keyboardVisible ? 'pb-4' : 'pb-10'} bg-transparent border-t border-gray-200/50 dark:border-white/10 transition-all duration-300`}>
+            <div className="mt-auto bg-white dark:bg-[#121214]">
+                <div className={`p-4 pb-10 bg-transparent border-t border-gray-200/50 dark:border-white/10 transition-all duration-300`}>
                     {selectedFile && (
                         <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                            <div className={`bg-gray-50 border-gray-200 dark:bg-[#1c1c1e]/50 dark:border-white/10 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
+                            <div className={`bg-gray-50 border-gray-200 dark:bg-[#1c1c1e] dark:border-white/10 border rounded-xl p-2 flex items-center justify-between`}>
                                 <div className="flex items-center gap-2 overflow-hidden">
                                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
                                         {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
@@ -315,22 +285,23 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
                     <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                         <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) setSelectedFile(e.target.files[0]); }} />
-                        <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
+                        <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
 
                         <div className="flex-1 relative">
                             <input
                                 type="text"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
+                                onFocus={() => setChatState('full')}
                                 placeholder="Escribe un mensaje..."
-                                className={`w-full bg-gray-100 border-transparent text-gray-900 dark:bg-[#1c1c1e]/50 dark:border-white/10 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all backdrop-blur-md`}
+                                className={`w-full bg-gray-100 border-transparent text-gray-900 dark:bg-[#1c1c1e] dark:border-white/10 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-white/10 transition-all`}
                             />
                             <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
                         </div>
 
                         <button
                             type="submit"
-                            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-white text-black scale-105 shadow-lg' : 'bg-[#1c1c1e]/50 text-gray-500'}`}
+                            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-black text-white dark:bg-white dark:text-black scale-105 shadow-lg' : 'bg-gray-200 text-gray-500 dark:bg-[#1c1c1e] dark:text-gray-500'}`}
                         >
                             {inputValue.trim() || selectedFile ? <ArrowUp size={22} strokeWidth={2.5} /> : <Mic size={22} strokeWidth={2} />}
                         </button>
