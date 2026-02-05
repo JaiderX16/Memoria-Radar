@@ -32,6 +32,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const containerRef = useRef(null);
 
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
 
@@ -43,13 +44,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         const handleResize = () => {
             const currentHeight = window.visualViewport?.height || window.innerHeight;
             const heightDiff = initialHeight - currentHeight;
-
-            console.log('📱 Keyboard Detection:', {
-                initialHeight,
-                currentHeight,
-                heightDiff,
-                keyboardVisible: heightDiff > 150
-            });
 
             // Si la diferencia es mayor a 150px, asumimos que el teclado está visible
             if (heightDiff > 150) {
@@ -174,7 +168,6 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         // Solo permitir botón izquierdo del mouse o toque
         if (e.button !== 0) return;
 
-        console.log('👇 Pointer Down');
         setIsDragging(true);
         dragStartY.current = e.clientY;
         dragStartHeight.current = currentHeight;
@@ -191,25 +184,35 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         const deltaY = dragStartY.current - currentY; // Arriba es positivo
         const newHeight = dragStartHeight.current + deltaY;
 
-        console.log('MOVE:', { deltaY, newHeight });
-
         const maxHeight = window.innerHeight * 0.95;
         const minHeight = 0;
 
         if (newHeight >= minHeight && newHeight <= maxHeight) {
-            setCurrentHeight(newHeight);
+            if (containerRef.current) {
+                containerRef.current.style.height = `${newHeight}px`;
+            }
         }
     };
 
     const handlePointerUp = (e) => {
-        console.log('👆 Pointer Up');
         setIsDragging(false);
 
         // Liberar captura
         e.currentTarget.releasePointerCapture(e.pointerId);
 
+        // Calculate final height based on drag because currentHeight state wasn't updated
+        const currentY = e.clientY;
+        const deltaY = dragStartY.current - currentY;
+        let finalHeight = dragStartHeight.current + deltaY;
+
         const screenHeight = window.innerHeight;
-        const heightPercentage = currentHeight / screenHeight;
+        const maxHeight = screenHeight * 0.95;
+
+        // Clamp
+        if (finalHeight > maxHeight) finalHeight = maxHeight;
+        if (finalHeight < 0) finalHeight = 0;
+
+        const heightPercentage = finalHeight / screenHeight;
 
         // Lógica de Snap
         if (heightPercentage < 0.25) {
@@ -226,6 +229,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     return (
         <div
+            ref={containerRef}
             className={`fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t border-gray-200/50 dark:border-white/10 overflow-hidden bg-white dark:bg-[#121214]`}
             style={{
                 height: `${currentHeight}px`,
@@ -254,12 +258,12 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                         return (
                             <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
                                 {msg.type === 'text' && (
-                                    <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-2xl rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-2xl rounded-tl-none'}`}>
+                                    <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-2xl rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-2xl rounded-tl-none'}`}>
                                         {msg.text}
                                     </div>
                                 )}
                                 {msg.type === 'file' && (
-                                    <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-tl-none'}`}>
+                                    <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-tl-none'}`}>
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : 'bg-white dark:bg-gray-700/50'}`}>
                                             {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={16} />}
                                         </div>
@@ -275,7 +279,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
                     {isTyping && (
                         <div className="flex items-start">
-                            <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-[#E9E9EB] dark:bg-[#262626]`}>
+                            <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center bg-[#E9E9EB] dark:bg-[#262626]`}>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -291,7 +295,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                 <div className={`p-4 ${keyboardVisible ? 'pb-4' : 'pb-10'} bg-transparent border-t border-gray-200/50 dark:border-white/10 transition-all duration-300`}>
                     {selectedFile && (
                         <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                            <div className={`bg-gray-50 border-gray-200 dark:bg-[#1c1c1e]/50 dark:border-white/10 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
+                            <div className={`bg-gray-50 border-gray-200 dark:bg-[#1c1c1e]/50 dark:border-white/10 border rounded-xl p-2 flex items-center justify-between`}>
                                 <div className="flex items-center gap-2 overflow-hidden">
                                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
                                         {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
@@ -323,7 +327,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 placeholder="Escribe un mensaje..."
-                                className={`w-full bg-gray-100 border-transparent text-gray-900 dark:bg-[#1c1c1e]/50 dark:border-white/10 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all backdrop-blur-md`}
+                                className={`w-full bg-gray-100 border-transparent text-gray-900 dark:bg-[#1c1c1e]/50 dark:border-white/10 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all`}
                             />
                             <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
                         </div>
