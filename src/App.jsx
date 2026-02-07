@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import Mapa from '@/components/features/map/Mapa';
-import Sidebar from '@/components/layout/Sidebar/UserSidebar';
-import SidebarBusiness from '@/components/layout/Sidebar/BusinessSidebar';
-import SidebarAdmin from '@/components/layout/Sidebar/AdminSidebar';
+import Sidebar from '@/components/layout/Sidebar/user/UserSidebar';
+import SidebarBusiness from '@/components/layout/Sidebar/business/BusinessSidebar';
+import SidebarAdmin from '@/components/layout/Sidebar/admin/AdminSidebar';
 import Profile from '@/components/features/profile/Profile';
 import FormularioLugar from '@/components/features/places/FormularioLugar';
 import ChatBot from '@/components/features/chat/ChatBot';
 import { useFiltrosAvanzados } from '@/hooks/useFiltrosAvanzados';
+import { MOCK_PLACES } from '@/data/mockPlaces';
+import { MOCK_EVENTS } from '@/data/mockEvents';
 
 function App() {
     const [lugares, setLugares] = useState([]);
+    const [eventos, setEventos] = useState([]);
     const [selectedLugar, setSelectedLugar] = useState(null);
+    const [selectedEvento, setSelectedEvento] = useState(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [newLugarCoords, setNewLugarCoords] = useState(null);
     const [isAddingMode, setIsAddingMode] = useState(false);
@@ -113,42 +117,16 @@ function App() {
 
         const url = `/api/places${params.toString() ? `?${params.toString()}` : ''}`;
 
-        const fetchPlaces = async () => {
-            try {
-                const res = await fetch(url, { signal: controller.signal });
-                if (!res.ok) throw new Error(`Error ${res.status}`);
-                const data = await res.json();
-                const places = Array.isArray(data?.places) ? data.places : [];
-                const mapped = places.map((p, idx) => {
-                    let lat = null, lng = null;
-                    if (typeof p.ubicacion === 'string' && p.ubicacion.includes(',')) {
-                        const [latStr, lngStr] = p.ubicacion.split(',');
-                        lat = parseFloat(latStr);
-                        lng = parseFloat(lngStr);
-                        if (Number.isNaN(lat)) lat = null;
-                        if (Number.isNaN(lng)) lng = null;
-                    }
-                    return {
-                        id: `${p.nombre || 'lugar'}-${idx}`,
-                        nombre: p.nombre || '',
-                        descripcion: p.descripcion_corta || p.descripcion_completa || p.descripcion || '',
-                        categoria: mapBackendToFrontendCategory(p.categoria || 'otros'),
-                        latitud: lat,
-                        longitud: lng,
-                        imagen: p.imagen_url || '',
-                        color: undefined
-                    };
-                });
-                setLugares(mapped);
-                window.lugares = mapped;
-            } catch (e) {
-                if (e.name !== 'AbortError') {
-                    console.error('Error cargando lugares:', e);
-                }
-            }
-        };
+        // Cargar datos mockeados inicialmente
+        setLugares(MOCK_PLACES);
+        setEventos(MOCK_EVENTS);
+        window.lugares = MOCK_PLACES;
+        window.eventos = MOCK_EVENTS;
 
-        fetchPlaces();
+        // Simular carga o mantener fetch si se desea, pero priorizar mock por ahora
+        // const fetchPlaces = async () => { ... }
+        // fetchPlaces();
+
         return () => controller.abort();
     }, [selectedCategories, searchTerm]);
 
@@ -167,7 +145,15 @@ function App() {
         }
     }, [isSidebarOpen]);
 
-    const handleLugarClick = (lugar) => setSelectedLugar(lugar);
+    const handleLugarClick = (lugar) => {
+        setSelectedLugar(lugar);
+        setSelectedEvento(null); // Limpiar selección de evento
+    };
+
+    const handleEventClick = (evento) => {
+        setSelectedEvento(evento);
+        setSelectedLugar(null); // Limpiar selección de lugar
+    };
     const handleAddLugar = () => setIsFormOpen(true);
     const handleMapClick = (latlng) => {
         setNewLugarCoords({ lat: latlng.lat, lng: latlng.lng });
@@ -179,7 +165,13 @@ function App() {
         setNewLugarCoords(null);
         setIsAddingMode(false);
     };
-    const handleSubmitLugar = (nuevoLugar) => setLugares(prev => [...prev, nuevoLugar]);
+    const handleSubmitLugar = (nuevoPunto) => {
+        if (nuevoPunto.type === 'evento') {
+            setEventos(prev => [...prev, nuevoPunto]);
+        } else {
+            setLugares(prev => [...prev, nuevoPunto]);
+        }
+    };
     const handleDeleteLugar = (lugarId) => {
         setLugares(prev => prev.filter(lugar => lugar.id !== lugarId));
         if (selectedLugar && selectedLugar.id === lugarId) setSelectedLugar(null);
@@ -200,10 +192,13 @@ function App() {
         <div className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-black">
             <Mapa
                 lugares={filteredLugares}
+                eventos={eventos}
                 onLugarClick={handleLugarClick}
+                onEventClick={handleEventClick}
                 isAddingMode={isAddingMode}
                 onMapClick={handleMapClick}
                 selectedLugar={selectedLugar}
+                selectedEvento={selectedEvento}
                 onToggleChat={handleToggleChat}
                 chatState={chatState}
                 mapTheme={mapTheme}
@@ -270,11 +265,16 @@ function App() {
             <Sidebar
                 isOpen={isSidebarOpen && userRole === 'user'}
                 setIsOpen={setIsSidebarOpen}
+                searchTerm={searchTerm}
                 onSearch={setSearchTerm}
                 onCategorySelect={toggleCategory}
                 selectedCategories={selectedCategories}
                 lugares={filteredLugares}
+                eventos={eventos}
                 onLugarClick={handleLugarClick}
+                onEventClick={handleEventClick}
+                selectedLugar={selectedLugar}
+                selectedEvento={selectedEvento}
                 stats={filterStats}
                 currentFilters={{
                     search: searchTerm,

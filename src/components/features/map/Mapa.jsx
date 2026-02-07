@@ -15,7 +15,7 @@ import { Info, MessageSquare, MapPin, Plus, X } from 'lucide-react';
 import FormularioLugar from '@/components/features/places/FormularioLugar';
 import ModalPin from './ModalPin';
 
-export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, selectedLugar, onToggleChat, chatState, mapTheme, starrySky }) {
+export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick, isAddingMode, onMapClick, selectedLugar, selectedEvento, onToggleChat, chatState, mapTheme, starrySky }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
@@ -186,12 +186,20 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
     // Calcular posición del modal basada en las coordenadas del marcador
     if (mapRef.current) {
       const map = mapRef.current;
-      const coords = map.project([point.longitud, point.latitud]);
+      const lng = point.longitud || point.lng;
+      const lat = point.latitud || point.lat;
+
+      if (lng === undefined || lat === undefined) {
+        console.error('Invalid coordinates for point:', point);
+        return;
+      }
+
+      const coords = map.project([lng, lat]);
       setModalPosition({ x: coords.x, y: coords.y });
 
       // Animación suave y fluida usando flyTo
       map.flyTo({
-        center: [point.longitud, point.latitud],
+        center: [lng, lat],
         padding: { top: 300, bottom: 0, left: 0, right: 0 },
         zoom: 17, // Asegurar un buen nivel de zoom
         speed: 1.2, // Velocidad de vuelo (más alto = más rápido)
@@ -201,6 +209,19 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
       });
     }
   };
+
+  // Sincronizar selección externa (ej. desde sidebar) con el estado interno del mapa
+  useEffect(() => {
+    if (selectedLugar && selectedLugar !== selectedLocation) {
+      handleMarkerClick(selectedLugar);
+    }
+  }, [selectedLugar]);
+
+  useEffect(() => {
+    if (selectedEvento && selectedEvento !== selectedLocation) {
+      handleMarkerClick(selectedEvento);
+    }
+  }, [selectedEvento]);
 
   // Función para cerrar el modal de pin
   const handleCloseModal = () => {
@@ -220,8 +241,8 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
     try {
       const startLng = userLocation.longitude;
       const startLat = userLocation.latitude;
-      const endLng = selectedLocation.longitud;
-      const endLat = selectedLocation.latitud;
+      const endLng = selectedLocation.longitud || selectedLocation.lng;
+      const endLat = selectedLocation.latitud || selectedLocation.lat;
 
       // Usar OSRM para calcular la ruta
       const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
@@ -256,7 +277,9 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
     let isUpdatePending = false;
 
     const updateModalPosition = () => {
-      const coords = map.project([selectedLocation.longitud, selectedLocation.latitud]);
+      const lng = selectedLocation.longitud || selectedLocation.lng;
+      const lat = selectedLocation.latitud || selectedLocation.lat;
+      const coords = map.project([lng, lat]);
       setModalPosition({ x: coords.x, y: coords.y });
       isUpdatePending = false;
     };
@@ -443,7 +466,71 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
           </MapMarker>
         )}
 
-        {/* TODO: Aquí se renderizarán los marcadores de lugares desde el backend */}
+        {/* Marcadores de lugares desde el backend/mock */}
+        {lugares.map((lugar) => (
+          <MapMarker
+            key={lugar.id}
+            latitude={lugar.latitud}
+            longitude={lugar.longitud}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMarkerClick(lugar);
+            }}
+          >
+            <MarkerContent>
+              <div className="relative group cursor-pointer transition-transform hover:scale-110">
+                <div
+                  className="absolute w-full h-full rounded-full opacity-20 animate-pulse"
+                  style={{ backgroundColor: lugar.color || '#3b82f6' }}
+                ></div>
+                <div className="relative flex items-center justify-center w-10 h-10">
+                  <MapPin
+                    size={32}
+                    className="drop-shadow-lg"
+                    fill={lugar.color || '#3b82f6'}
+                    color="#ffffff"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                {/* Tooltip on hover */}
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-black/80 text-black dark:text-white text-xs font-bold px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                  {lugar.nombre}
+                </div>
+              </div>
+            </MarkerContent>
+          </MapMarker>
+        ))}
+
+        {/* Marcadores de EVENTOS */}
+        {eventos.map((evento) => (
+          <MapMarker
+            key={evento.id}
+            latitude={evento.lat}
+            longitude={evento.lng}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMarkerClick(evento);
+              if (onEventClick) onEventClick(evento);
+            }}
+          >
+            <MarkerContent>
+              <div className="relative group cursor-pointer transition-transform hover:scale-110">
+                {/* Estrella pulsante para eventos */}
+                <div className="absolute w-full h-full rounded-full bg-yellow-400 opacity-30 animate-ping"></div>
+                <div className="relative flex items-center justify-center w-10 h-10">
+                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                    <span className="text-white text-[10px] font-black">★</span>
+                  </div>
+                </div>
+                {/* Tooltip on hover */}
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                  {evento.title}
+                </div>
+              </div>
+            </MarkerContent>
+          </MapMarker>
+        ))}
+
       </Map>
 
       {/* Botón flotante para agregar puntos de interés */}
@@ -506,9 +593,11 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
             <ModalPin
               selectedLocation={{
                 ...selectedLocation,
-                name: selectedLocation.nombre,
-                lat: selectedLocation.latitud,
-                lng: selectedLocation.longitud
+                name: selectedLocation.nombre || selectedLocation.title,
+                categoria: selectedLocation.categoria || selectedLocation.date || 'Evento',
+                lat: selectedLocation.latitud || selectedLocation.lat,
+                lng: selectedLocation.longitud || selectedLocation.lng,
+                image: selectedLocation.image || selectedLocation.imagen
               }}
               onClose={handleCloseModal}
               onCalculateRoute={handleCalculateRoute}

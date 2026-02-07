@@ -41,10 +41,11 @@ export const useFiltrosAvanzados = (lugares) => {
       });
     }
 
-    // Filtro por categorías múltiples
+    // Filtro por categorías múltiples (insensible a mayúsculas)
     if (selectedCategories.length > 0) {
+      const lowerCategories = selectedCategories.map(c => c.toLowerCase());
       filtered = filtered.filter(lugar =>
-        selectedCategories.includes(lugar.categoria)
+        lugar.categoria && lowerCategories.includes(lugar.categoria.toLowerCase())
       );
     }
 

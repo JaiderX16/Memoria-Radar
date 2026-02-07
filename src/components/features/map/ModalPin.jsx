@@ -53,9 +53,18 @@ const ModalPin = ({ selectedLocation, onClose, onCalculateRoute, routeInfo, isRo
       >
         <div className="bg-white/80 backdrop-blur-2xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[28px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border-transparent overflow-y-auto scrollbar-hide ring-1 ring-black/5 transition-all duration-300 flex flex-col w-full max-h-[550px]">
 
-          {/* Visor Luma */}
+          {/* Visor Luma o Imagen Fallback */}
           <div className="relative w-full h-48 bg-gray-100 dark:bg-[#1c1c1e] group">
-            <PanoramaViewer />
+            {selectedLocation.image || selectedLocation.imagen ? (
+              <img
+                src={selectedLocation.image || selectedLocation.imagen}
+                className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-opacity"
+                alt={selectedLocation.name}
+              />
+            ) : null}
+            <div className="absolute inset-0">
+              <PanoramaViewer />
+            </div>
 
             {/* Overlay "LIVE" */}
             <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm pointer-events-none">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Save, Image as ImageIcon, Type, AlignLeft, Tag, Palette, Globe, Upload } from 'lucide-react';
+import { X, MapPin, Save, Image as ImageIcon, Type, AlignLeft, Tag, Palette, Globe, Upload, Calendar, Clock } from 'lucide-react';
 
 // Categorías y Colores
 const CATEGORIAS = ['parques', 'monumentos', 'restaurantes', 'museos', 'hoteles', 'mercados', 'playas', 'bares', 'discotecas'];
@@ -16,13 +16,15 @@ const COLORES = [
 ];
 
 const INITIAL_FORM_STATE = {
+    type: 'lugar', // 'lugar' o 'evento'
     nombre: '',
     latitud: '',
     longitud: '',
     descripcion: '',
     website: '',
     categoria: 'monumentos',
-    color: 'blue'
+    color: 'blue',
+    fecha: '' // Solo para eventos
 };
 
 // Estilos Premium (Inspirados en Chat Mia y ModalPin)
@@ -39,15 +41,17 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
     useEffect(() => {
         if (initialData) {
             setFormData({
-                nombre: initialData.nombre || '',
-                latitud: initialData.latitud || '',
-                longitud: initialData.longitud || '',
+                type: initialData.date || initialData.fecha ? 'evento' : 'lugar',
+                nombre: initialData.nombre || initialData.title || '',
+                latitud: initialData.latitud || initialData.lat || '',
+                longitud: initialData.longitud || initialData.lng || '',
                 descripcion: initialData.descripcion || '',
                 website: initialData.website || '',
                 categoria: initialData.categoria || 'monumentos',
-                color: initialData.color || 'blue'
+                color: initialData.color || 'blue',
+                fecha: initialData.date || initialData.fecha || ''
             });
-            setImagePreview(initialData.imagen || null);
+            setImagePreview(initialData.imagen || initialData.image || null);
         } else if (initialCoords) {
             setFormData(prev => ({
                 ...prev,
@@ -99,19 +103,34 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
         e.preventDefault();
         if (!validateForm()) return;
 
-        const nuevoLugar = {
+        const isEvento = formData.type === 'evento';
+        const lat = initialCoords?.lat || parseFloat(formData.latitud);
+        const lng = initialCoords?.lng || parseFloat(formData.longitud);
+
+        const nuevoPunto = isEvento ? {
+            id: initialData?.id || `ev-${Date.now()}`,
+            title: formData.nombre.trim(),
+            date: formData.fecha || 'Próximamente',
+            location: formData.website || 'Ubicación seleccionada',
+            image: imagePreview || 'https://images.unsplash.com/photo-1514525253344-f256bb967d01?q=80&w=400&auto=format&fit=crop',
+            lat: lat,
+            lng: lng,
+            description: formData.descripcion.trim(),
+            type: 'evento'
+        } : {
             id: initialData?.id || Date.now(),
             nombre: formData.nombre.trim(),
-            latitud: initialCoords?.lat || parseFloat(formData.latitud),
-            longitud: initialCoords?.lng || parseFloat(formData.longitud),
+            latitud: lat,
+            longitud: lng,
             descripcion: formData.descripcion.trim(),
             imagen: imagePreview || 'https://images.pexels.com/photos/3278215/pexels-photo-3278215.jpeg',
             website: formData.website.trim(),
             categoria: formData.categoria,
-            color: COLORES.find(c => c.id === formData.color)?.hex || '#3b82f6'
+            color: COLORES.find(c => c.id === formData.color)?.hex || '#3b82f6',
+            type: 'lugar'
         };
 
-        onSubmit(nuevoLugar);
+        onSubmit(nuevoPunto);
         handleClose();
     };
 
@@ -136,15 +155,19 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                 {/* Header Premium */}
                 <div className="px-8 pt-8 pb-6 flex items-start justify-between shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-600/10 flex items-center justify-center shadow-inner ring-1 ring-black/5 dark:ring-white/5">
-                            <MapPin className="text-blue-600 dark:text-blue-400 drop-shadow-sm" size={24} strokeWidth={2.5} />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ring-1 ring-black/5 dark:ring-white/5 transition-colors ${formData.type === 'evento' ? 'bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-500/20 dark:to-yellow-600/10' : 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-500/20 dark:to-blue-600/10'}`}>
+                            {formData.type === 'evento' ? (
+                                <Calendar className="text-yellow-600 dark:text-yellow-400 drop-shadow-sm" size={24} strokeWidth={2.5} />
+                            ) : (
+                                <MapPin className="text-blue-600 dark:text-blue-400 drop-shadow-sm" size={24} strokeWidth={2.5} />
+                            )}
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight leading-none mb-1.5">
-                                {initialData ? 'Editar Lugar' : 'Nuevo Lugar'}
+                                {initialData ? 'Editar' : 'Nuevo'} {formData.type === 'evento' ? 'Evento' : 'Lugar'}
                             </h2>
                             <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
-                                {initialData ? 'Modifica los detalles existentes' : 'Añade un punto de interés al mapa'}
+                                {initialData ? 'Modifica los detalles existentes' : `Añade un ${formData.type === 'evento' ? 'evento destacado' : 'punto de interés'} al mapa`}
                             </p>
                         </div>
                     </div>
@@ -156,6 +179,30 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                     </button>
                 </div>
 
+                {/* Selector de Tipo (SOLO EN CREACIÓN) */}
+                {!initialData && (
+                    <div className="px-8 pb-4">
+                        <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-gray-200 dark:border-white/5">
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, type: 'lugar' }))}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${formData.type === 'lugar' ? 'bg-white dark:bg-zinc-800 shadow-sm text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'}`}
+                            >
+                                <MapPin size={16} />
+                                Lugar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, type: 'evento' }))}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${formData.type === 'evento' ? 'bg-white dark:bg-zinc-800 shadow-sm text-yellow-600 dark:text-yellow-400' : 'text-slate-500 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-300'}`}
+                            >
+                                <Calendar size={16} />
+                                Evento
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Formulario Scrollable */}
                 <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 pb-8 space-y-6 scrollbar-hide">
 
@@ -163,7 +210,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                     <div className="space-y-5">
                         <div className="space-y-2">
                             <label className={LABEL_CLASSES}>
-                                <Type size={14} className="text-blue-500" /> NOMBRE DEL LUGAR
+                                <Type size={14} className={formData.type === 'evento' ? "text-yellow-500" : "text-blue-500"} /> {formData.type === 'evento' ? 'TÍTULO DEL EVENTO' : 'NOMBRE DEL LUGAR'}
                             </label>
                             <input
                                 type="text"
@@ -171,7 +218,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                                 value={formData.nombre}
                                 onChange={handleChange}
                                 className={INPUT_CLASSES}
-                                placeholder="Ej: Mirador del Valle"
+                                placeholder={formData.type === 'evento' ? "Ej: Festival de Jazz 2026" : "Ej: Mirador del Valle"}
                                 required
                             />
                             {errors.nombre && <p className="text-red-500 text-xs font-bold ml-1 animate-pulse">{errors.nombre}</p>}
@@ -206,7 +253,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
 
                         <div className="space-y-2">
                             <label className={LABEL_CLASSES}>
-                                <AlignLeft size={14} className="text-blue-500" /> DESCRIPCIÓN
+                                <AlignLeft size={14} className={formData.type === 'evento' ? "text-yellow-500" : "text-blue-500"} /> DESCRIPCIÓN
                             </label>
                             <textarea
                                 name="descripcion"
@@ -218,11 +265,28 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                                 required
                             />
                         </div>
+
+                        {formData.type === 'evento' && (
+                            <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                <label className={LABEL_CLASSES}>
+                                    <Clock size={14} className="text-yellow-500" /> CUÁNDO (FECHA/HORA)
+                                </label>
+                                <input
+                                    type="text"
+                                    name="fecha"
+                                    value={formData.fecha}
+                                    onChange={handleChange}
+                                    className={INPUT_CLASSES}
+                                    placeholder="Ej: Mañana, 20:00 o 15 de Julio"
+                                    required={formData.type === 'evento'}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Detalles Adicionales */}
                     <div className="grid grid-cols-2 gap-5">
-                        <div className="space-y-2">
+                        <div className={`space-y-2 ${formData.type === 'evento' ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className={LABEL_CLASSES}>
                                 <Tag size={14} className="text-blue-500" /> CATEGORÍA
                             </label>
@@ -238,7 +302,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className={`space-y-2 ${formData.type === 'evento' ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className={LABEL_CLASSES}>
                                 <Palette size={14} className="text-blue-500" /> COLOR
                             </label>
@@ -257,7 +321,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
 
                     <div className="space-y-2">
                         <label className={LABEL_CLASSES}>
-                            <Globe size={14} className="text-blue-500" /> WEBSITE (OPCIONAL)
+                            <Globe size={14} className={formData.type === 'evento' ? "text-yellow-500" : "text-blue-500"} /> {formData.type === 'evento' ? 'UBICACIÓN TEXTUAL/LINK' : 'WEBSITE (OPCIONAL)'}
                         </label>
                         <input
                             type="url"
@@ -272,7 +336,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                     {/* Imagen Upload */}
                     <div className="space-y-2">
                         <label className={LABEL_CLASSES}>
-                            <ImageIcon size={14} className="text-blue-500" /> IMAGEN (OPCIONAL)
+                            <ImageIcon size={14} className={formData.type === 'evento' ? "text-yellow-500" : "text-blue-500"} /> IMAGEN (OPCIONAL)
                         </label>
                         {!imagePreview ? (
                             <div
@@ -325,7 +389,7 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                             className="flex-1 py-4 px-6 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-200 text-white dark:text-black rounded-2xl font-bold shadow-lg shadow-slate-900/20 dark:shadow-white/10 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             <Save size={18} strokeWidth={2.5} />
-                            {initialData ? 'Guardar Cambios' : 'Guardar Lugar'}
+                            {initialData ? 'Guardar Cambios' : `Guardar ${formData.type === 'evento' ? 'Evento' : 'Lugar'}`}
                         </button>
                     </div>
 
