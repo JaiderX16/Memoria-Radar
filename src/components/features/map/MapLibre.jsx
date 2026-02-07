@@ -13,7 +13,7 @@ import MapLibreGL from "maplibre-gl";
 import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, Navigation } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { cn } from "../utils/cn";
+import { cn } from "@/utils/cn";
 
 // --- Tooltip Components ---
 
@@ -142,6 +142,60 @@ const defaultStyles = {
     light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
 };
 
+const satelliteStyle = {
+    version: 8,
+    sources: {
+        'satellite-tiles': {
+            type: 'raster',
+            tiles: [
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+        }
+    },
+    layers: [
+        {
+            id: 'satellite-layer',
+            type: 'raster',
+            source: 'satellite-tiles',
+            minzoom: 0,
+            maxzoom: 22
+        }
+    ]
+};
+
+const hybridStyle = {
+    version: 8,
+    sources: {
+        'satellite-tiles': {
+            type: 'raster',
+            tiles: [
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            ],
+            tileSize: 256,
+            attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+        },
+        'labels-tiles': {
+            type: 'raster',
+            tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256
+        }
+    },
+    layers: [
+        {
+            id: 'satellite-layer',
+            type: 'raster',
+            source: 'satellite-tiles',
+        },
+        {
+            id: 'labels-layer',
+            type: 'raster',
+            source: 'labels-tiles',
+        }
+    ]
+};
+
 const DefaultLoader = () => (
     <div className="absolute inset-0 flex items-center justify-center">
         <div className="flex gap-1">
@@ -153,7 +207,7 @@ const DefaultLoader = () => (
 );
 
 const Map = forwardRef(function Map(
-    { children, theme: themeProp, styles, projection, ...props },
+    { children, theme: themeProp, styles, projection, mapTheme = 'standard', starrySky = false, ...props },
     ref
 ) {
     const containerRef = useRef(null);
@@ -184,8 +238,15 @@ const Map = forwardRef(function Map(
     useEffect(() => {
         if (!containerRef.current) return;
 
-        const initialStyle =
-            resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+        let initialStyle;
+        if (mapTheme === 'satellite') {
+            initialStyle = satelliteStyle;
+        } else if (mapTheme === 'hybrid') {
+            initialStyle = hybridStyle;
+        } else {
+            initialStyle = resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+        }
+
         currentStyleRef.current = initialStyle;
 
         const map = new MapLibreGL.Map({
@@ -195,8 +256,12 @@ const Map = forwardRef(function Map(
             attributionControl: {
                 compact: true,
             },
+            center: [0, 0],
+            zoom: 1,
+            projection: projection || 'mercator',
             ...props,
         });
+
 
         const styleDataHandler = () => {
             clearStyleTimeout();
@@ -228,20 +293,61 @@ const Map = forwardRef(function Map(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useEffect(() => {
-        if (!mapInstance || !resolvedTheme) return;
+    const [isOverZoomLimit, setIsOverZoomLimit] = useState(false);
 
-        const newStyle =
-            resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+    useEffect(() => {
+        if (!mapInstance) return;
+
+        const checkZoom = () => {
+            const z = mapInstance.getZoom();
+            // Esri usually stops around 18-19. 17.5 is a safe buffer to switch before it gets ugly.
+            // Adjusting to 16 based on user feedback to prevent gray tiles.
+            setIsOverZoomLimit(z > 16);
+        };
+
+        mapInstance.on('zoom', checkZoom);
+
+        return () => {
+            mapInstance.off('zoom', checkZoom);
+        };
+    }, [mapInstance]);
+
+    useEffect(() => {
+        if (!mapInstance) return;
+
+        let newStyle;
+        const useStandard = !mapTheme || mapTheme === 'standard' || (isOverZoomLimit && (mapTheme === 'satellite' || mapTheme === 'hybrid'));
+
+        if (!useStandard) {
+            if (mapTheme === 'satellite') newStyle = satelliteStyle;
+            else if (mapTheme === 'hybrid') newStyle = hybridStyle;
+        } else {
+            newStyle = resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
+        }
 
         if (currentStyleRef.current === newStyle) return;
 
-        clearStyleTimeout();
+        // Prevent style reload if we are just toggling between satellite and standard due to zoom 
+        // implies we need to handle the transition smoothly. 
+        // Current implementation replaces style. 
+
+        const loadNewStyle = () => {
+            if (mapInstance.isStyleLoaded()) {
+                mapInstance.setStyle(newStyle, { diff: true });
+            } else {
+                // waits
+            }
+        };
+
         currentStyleRef.current = newStyle;
-        setIsStyleLoaded(false);
+
+        // Debounce style changes slightly to prevent flickering at the boundary if zoom jitters? 
+        // React batching should handle it, but map.setStyle is expensive.
+        // Direct call:
 
         mapInstance.setStyle(newStyle, { diff: true });
-    }, [mapInstance, resolvedTheme, mapStyles, clearStyleTimeout]);
+
+    }, [mapInstance, resolvedTheme, mapStyles, clearStyleTimeout, mapTheme, isOverZoomLimit]);
 
     const contextValue = useMemo(
         () => ({

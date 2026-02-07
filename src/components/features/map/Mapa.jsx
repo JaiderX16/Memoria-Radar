@@ -13,8 +13,9 @@ import {
 } from './MapLibre';
 import { Info, MessageSquare } from 'lucide-react';
 
-export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, selectedLugar, onToggleChat, chatState }) {
+export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, selectedLugar, onToggleChat, chatState, mapTheme, starrySky }) {
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
   const [isMarkerVisible, setIsMarkerVisible] = useState(true);
 
@@ -95,12 +96,46 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
     };
   }, [userLocation]);
 
+  // Efecto para mover el fondo estrellado
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !starrySky || !containerRef.current) return;
+
+    const updateBackground = () => {
+      const center = map.getCenter();
+      const { lng, lat } = center;
+      // Factor de movimiento: ajusta para más o menos sensibilidad
+      const x = -lng * 10;
+      const y = -lat * 10;
+
+      containerRef.current.style.backgroundPosition = `${x}px ${y}px`;
+    };
+
+    map.on('move', updateBackground);
+    // Inicializar posición
+    updateBackground();
+
+    return () => {
+      map.off('move', updateBackground);
+    };
+  }, [starrySky, mapRef.current]); // Re-ejecutar si se activa/desactiva o cambia el mapa
+
   return (
-    <div className="relative w-full h-full rounded-none overflow-hidden border-none bg-black">
+    <div
+      ref={containerRef}
+      className={`relative w-full h-full rounded-none overflow-hidden border-none transition-colors duration-500 ${!starrySky ? 'bg-gray-100 dark:bg-black' : ''}`}
+      style={starrySky ? {
+        backgroundColor: '#000',
+        backgroundImage: 'radial-gradient(circle at center, #111 0%, #000 100%), url("https://www.transparenttextures.com/patterns/stardust.png")',
+        backgroundBlendMode: 'screen',
+        transition: 'background-color 0.5s ease' // Solo animar color, posición es en tiempo real
+      } : {}}
+    >
       <Map
         ref={mapRef}
         projection={{ type: 'globe' }}
-        theme="dark"
+        mapTheme={mapTheme}
+        starrySky={starrySky}
         center={[0, 20]}
         zoom={1.5}
         attributionControl={false}
