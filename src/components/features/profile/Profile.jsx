@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { User as UserIcon, X } from 'lucide-react';
-import UserAvatar from './Profile/UserAvatar';
-import Toast from './Profile/Toast';
-import ImageEditor from './Profile/ImageEditor';
-import ImageViewer from './Profile/ImageViewer';
-import ProfileMenu from './Profile/ProfileMenu';
-import AuthScreen from './Profile/AuthScreen';
+import UserAvatar from './UserAvatar';
+import Toast from './Toast';
+import ImageEditor from './ImageEditor';
+import ImageViewer from './ImageViewer';
+import ProfileMenu from './ProfileMenu';
+import AuthScreen from './AuthScreen';
 
 const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme, starrySky, setStarrySky, darkMode, toggleDarkMode }) => {
     const [isOpen, setIsOpen] = useState(false);

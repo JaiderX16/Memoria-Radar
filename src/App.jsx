@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
-import Mapa from './components/Mapa';
-import Sidebar from './components/Sidebar';
-import SidebarBusiness from './components/SidebarBusiness';
-import SidebarAdmin from './components/SidebarAdmin';
-import Profile from './components/Profile';
-import FormularioLugar from './components/FormularioLugar';
-import ChatBot from './components/Mia';
-import { useFiltrosAvanzados } from './hooks/useFiltrosAvanzados';
+import Mapa from '@/components/features/map/Mapa';
+import Sidebar from '@/components/layout/Sidebar/UserSidebar';
+import SidebarBusiness from '@/components/layout/Sidebar/BusinessSidebar';
+import SidebarAdmin from '@/components/layout/Sidebar/AdminSidebar';
+import Profile from '@/components/features/profile/Profile';
+import FormularioLugar from '@/components/features/places/FormularioLugar';
+import ChatBot from '@/components/features/chat/ChatBot';
+import { useFiltrosAvanzados } from '@/hooks/useFiltrosAvanzados';
 
 function App() {
     const [lugares, setLugares] = useState([]);

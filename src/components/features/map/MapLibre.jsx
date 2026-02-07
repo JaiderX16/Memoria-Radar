@@ -13,7 +13,7 @@ import MapLibreGL from "maplibre-gl";
 import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, Navigation } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { cn } from "../utils/cn";
+import { cn } from "@/utils/cn";
 
 // --- Tooltip Components ---
 

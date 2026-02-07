@@ -10,9 +10,9 @@ import {
     ChevronDown,
     Mic
 } from 'lucide-react';
-import MiaMobile from './MiaMobile';
+import ChatBotMobile from './ChatBotMobile';
 
-const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
+const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     const [isMobile, setIsMobile] = useState(false);
 
     // Detectar móvil
@@ -27,15 +27,14 @@ const Mia = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
     // Si es móvil, usar el componente MiaMobile
     if (isMobile) {
-        return <MiaMobile isOpen={isOpen} setIsOpen={setIsOpen} chatState={chatState} setChatState={setChatState} />;
+        return <ChatBotMobile isOpen={isOpen} setIsOpen={setIsOpen} chatState={chatState} setChatState={setChatState} />;
     }
 
     // Componente Desktop
-    return <MiaDesktop isOpen={isOpen} setIsOpen={setIsOpen} />;
+    return <ChatBotDesktop isOpen={isOpen} setIsOpen={setIsOpen} />;
 };
 
-// Componente Desktop (simplificado)
-const MiaDesktop = ({ isOpen, setIsOpen }) => {
+const ChatBotDesktop = ({ isOpen, setIsOpen }) => {
     // Estados principales
     const [messages, setMessages] = useState([
         {
@@ -241,4 +240,4 @@ const MiaDesktop = ({ isOpen, setIsOpen }) => {
     );
 };
 
-export default Mia;
+export default ChatBot;
