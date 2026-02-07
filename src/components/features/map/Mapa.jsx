@@ -11,13 +11,23 @@ import {
   TooltipContent,
   TooltipTrigger
 } from './MapLibre';
-import { Info, MessageSquare } from 'lucide-react';
+import { Info, MessageSquare, MapPin, Plus, X } from 'lucide-react';
+import FormularioLugar from '@/components/features/places/FormularioLugar';
+import ModalPin from './ModalPin';
 
 export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, selectedLugar, onToggleChat, chatState, mapTheme, starrySky }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
   const [isMarkerVisible, setIsMarkerVisible] = useState(true);
+  const [isAddingPoint, setIsAddingPoint] = useState(false);
+  const [newPoints, setNewPoints] = useState([]);
+  const [tempPoint, setTempPoint] = useState(null);
+  const [showPointForm, setShowPointForm] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const [routeData, setRouteData] = useState(null);
+  const [isRouting, setIsRouting] = useState(false);
 
   // Solicitar ubicación automáticamente al cargar
   useEffect(() => {
@@ -120,6 +130,213 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
     };
   }, [starrySky, mapRef.current]); // Re-ejecutar si se activa/desactiva o cambia el mapa
 
+  // Manejar clicks en el mapa cuando está en modo agregar
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const handleMapClick = (e) => {
+      if (isAddingPoint) {
+        const { lng, lat } = e.lngLat;
+        setTempPoint({ longitud: lng, latitud: lat });
+        setShowPointForm(true);
+      }
+    };
+
+    map.on('click', handleMapClick);
+
+    // Cambiar cursor cuando está en modo agregar
+    if (isAddingPoint) {
+      map.getCanvas().style.cursor = 'crosshair';
+    } else {
+      map.getCanvas().style.cursor = '';
+    }
+
+    return () => {
+      map.off('click', handleMapClick);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [isAddingPoint]);
+
+  // Función para activar/desactivar modo agregar
+  const toggleAddingMode = () => {
+    setIsAddingPoint(!isAddingPoint);
+    setTempPoint(null);
+    setShowPointForm(false);
+  };
+
+  // Función para guardar el nuevo punto desde FormularioLugar
+  const handleSavePoint = (nuevoLugar) => {
+    setNewPoints([...newPoints, nuevoLugar]);
+    setTempPoint(null);
+    setShowPointForm(false);
+    setIsAddingPoint(false);
+  };
+
+  // Función para cancelar agregar punto
+  const handleCancelPoint = () => {
+    setTempPoint(null);
+    setShowPointForm(false);
+  };
+
+  // Función para manejar click en marcador
+  const handleMarkerClick = (point) => {
+    setSelectedLocation(point);
+
+    // Calcular posición del modal basada en las coordenadas del marcador
+    if (mapRef.current) {
+      const map = mapRef.current;
+      const coords = map.project([point.longitud, point.latitud]);
+      setModalPosition({ x: coords.x, y: coords.y });
+
+      // Animación suave y fluida usando flyTo
+      map.flyTo({
+        center: [point.longitud, point.latitud],
+        padding: { top: 300, bottom: 0, left: 0, right: 0 },
+        zoom: 17, // Asegurar un buen nivel de zoom
+        speed: 1.2, // Velocidad de vuelo (más alto = más rápido)
+        curve: 1.42, // Curvatura de la trayectoria (1 = sin zoom out)
+        easing: (t) => t,
+        essential: true
+      });
+    }
+  };
+
+  // Función para cerrar el modal de pin
+  const handleCloseModal = () => {
+    setSelectedLocation(null);
+    setRouteData(null);
+  };
+
+  // Función para calcular ruta usando OSRM
+  const handleCalculateRoute = async () => {
+    if (!userLocation || !selectedLocation) {
+      alert('No se puede calcular la ruta. Asegúrate de que tu ubicación esté disponible.');
+      return;
+    }
+
+    setIsRouting(true);
+
+    try {
+      const startLng = userLocation.longitude;
+      const startLat = userLocation.latitude;
+      const endLng = selectedLocation.longitud;
+      const endLat = selectedLocation.latitud;
+
+      // Usar OSRM para calcular la ruta
+      const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        setRouteData({
+          geometry: route.geometry,
+          distance: (route.distance / 1000).toFixed(2), // km
+          duration: Math.round(route.duration / 60) // minutos
+        });
+      } else {
+        throw new Error('No se pudo calcular la ruta');
+      }
+    } catch (error) {
+      console.error('Error calculando ruta:', error);
+      alert('Error al calcular la ruta. Por favor intenta de nuevo.');
+    } finally {
+      setIsRouting(false);
+    }
+  };
+
+  // Actualizar posición del modal cuando el mapa se mueve (optimizado con RAF)
+  useEffect(() => {
+    if (!selectedLocation || !mapRef.current) return;
+
+    const map = mapRef.current;
+    let rafId = null;
+    let isUpdatePending = false;
+
+    const updateModalPosition = () => {
+      const coords = map.project([selectedLocation.longitud, selectedLocation.latitud]);
+      setModalPosition({ x: coords.x, y: coords.y });
+      isUpdatePending = false;
+    };
+
+    const scheduleUpdate = () => {
+      if (!isUpdatePending) {
+        isUpdatePending = true;
+        rafId = requestAnimationFrame(updateModalPosition);
+      }
+    };
+
+    // Usar eventos optimizados
+    map.on('move', scheduleUpdate);
+    map.on('zoom', scheduleUpdate);
+
+    // Posicionar inicialmente
+    updateModalPosition();
+
+    return () => {
+      map.off('move', scheduleUpdate);
+      map.off('zoom', scheduleUpdate);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [selectedLocation]);
+
+  // Efecto para dibujar la ruta en el mapa
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !routeData) return;
+
+    // Esperar a que el mapa esté completamente cargado
+    const addRoute = () => {
+      // Eliminar ruta anterior si existe
+      if (map.getSource('route')) {
+        map.removeLayer('route');
+        map.removeSource('route');
+      }
+
+      // Agregar nueva ruta
+      map.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: routeData.geometry
+        }
+      });
+
+      map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 5,
+          'line-opacity': 0.75
+        }
+      });
+    };
+
+    if (map.isStyleLoaded()) {
+      addRoute();
+    } else {
+      map.on('load', addRoute);
+    }
+
+    return () => {
+      if (map.getSource('route')) {
+        map.removeLayer('route');
+        map.removeSource('route');
+      }
+    };
+  }, [routeData]);
+
   return (
     <div
       ref={containerRef}
@@ -191,8 +408,116 @@ export default function Mapa({ lugares, onLugarClick, isAddingMode, onMapClick, 
           </MapMarker>
         )}
 
+        {/* Marcadores de puntos de interés agregados por el usuario */}
+        {newPoints.map((point) => (
+          <MapMarker
+            key={point.id}
+            latitude={point.latitud}
+            longitude={point.longitud}
+            onClick={() => handleMarkerClick(point)}
+          >
+            <MarkerContent>
+              <div className="relative flex items-center justify-center w-8 h-8">
+                <div className="absolute w-full h-full bg-green-500 rounded-full opacity-20 animate-pulse"></div>
+                <MapPin className="w-6 h-6 text-green-600 drop-shadow-lg" fill="currentColor" />
+              </div>
+            </MarkerContent>
+            <MarkerLabel className="text-xs font-semibold text-green-600 bg-white px-2 py-1 rounded shadow-md mt-1">
+              {point.nombre}
+            </MarkerLabel>
+          </MapMarker>
+        ))}
+
+        {/* Marcador temporal mientras se agrega un punto */}
+        {tempPoint && (
+          <MapMarker
+            latitude={tempPoint.latitud}
+            longitude={tempPoint.longitud}
+          >
+            <MarkerContent>
+              <div className="relative flex items-center justify-center w-8 h-8">
+                <div className="absolute w-full h-full bg-yellow-500 rounded-full opacity-30 animate-ping"></div>
+                <MapPin className="w-6 h-6 text-yellow-500 drop-shadow-lg" fill="currentColor" />
+              </div>
+            </MarkerContent>
+          </MapMarker>
+        )}
+
         {/* TODO: Aquí se renderizarán los marcadores de lugares desde el backend */}
       </Map>
+
+      {/* Botón flotante para agregar puntos de interés */}
+      <div className="absolute top-4 right-4 z-20">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleAddingMode}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all duration-300 ${isAddingPoint
+                ? 'bg-red-500 hover:bg-red-600 text-white'
+                : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+            >
+              {isAddingPoint ? (
+                <>
+                  <X className="w-5 h-5" />
+                  <span className="font-semibold">Cancelar</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  <span className="font-semibold">Agregar Punto</span>
+                </>
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+            <p>{isAddingPoint ? 'Cancelar agregar punto' : 'Agregar punto de interés al mapa'}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Formulario profesional para agregar detalles del punto */}
+      <FormularioLugar
+        isOpen={showPointForm && tempPoint !== null}
+        onClose={handleCancelPoint}
+        onSubmit={handleSavePoint}
+        initialCoords={tempPoint ? { lat: tempPoint.latitud, lng: tempPoint.longitud } : null}
+      />
+
+      {/* Indicador de modo agregar activo */}
+      {isAddingPoint && !showPointForm && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-green-500 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
+            <p className="text-sm font-semibold">📍 Haz clic en el mapa para agregar un punto</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalles del pin */}
+      {selectedLocation && (
+        <div
+          className="absolute z-30 top-0 left-0 pointer-events-none"
+          style={{
+            transform: `translate3d(${modalPosition.x}px, ${modalPosition.y}px, 0) translateX(-50%) translateY(-100%) translateY(-25px)`,
+            willChange: 'transform'
+          }}
+        >
+          <div className="pointer-events-auto">
+            <ModalPin
+              selectedLocation={{
+                ...selectedLocation,
+                name: selectedLocation.nombre,
+                lat: selectedLocation.latitud,
+                lng: selectedLocation.longitud
+              }}
+              onClose={handleCloseModal}
+              onCalculateRoute={handleCalculateRoute}
+              routeInfo={routeData ? { distance: routeData.distance, duration: routeData.duration } : null}
+              isRouting={isRouting}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,127 +1,25 @@
-import React, { useRef, useState, useEffect } from 'react';
-import * as THREE from 'three';
-import { Navigation, X, Clock, ChevronDown, ArrowRight, Star, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Navigation, X, Clock, ChevronUp, ArrowRight, ArrowLeft, Star, Globe } from 'lucide-react';
 
-// TODO: Reemplazar con URL de imagen 360 real desde backend
-const DEFAULT_360_IMAGE = '/img/Parque_Constitucion.jpg';
+// ... (rest of imports remains same, skipping for brevity in replacement)
 
-// Componente Visor 360° con Three.js
-const PanoramaViewer = ({ imageUrl = DEFAULT_360_IMAGE, color }) => {
-  const mountRef = useRef(null);
-  const isDragging = useRef(false);
-  const previousMousePosition = useRef({ x: 0, y: 0 });
 
-  useEffect(() => {
-    const container = mountRef.current;
-    if (!container) return;
 
-    let renderer, scene, camera, sphere, animationId;
-
-    try {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 100);
-      camera.position.set(0, 0, 0.1);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(w, h);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      container.innerHTML = '';
-      container.appendChild(renderer.domElement);
-
-      const geometry = new THREE.SphereGeometry(10, 60, 40);
-      const textureLoader = new THREE.TextureLoader();
-      const texture = textureLoader.load(
-        imageUrl,
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-        },
-        undefined,
-        (err) => console.error('Error cargando imagen 360:', err)
-      );
-
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide,
-        color: 0xffffff,
-        transparent: false,
-        opacity: 1
-      });
-
-      sphere = new THREE.Mesh(geometry, material);
-      scene.add(sphere);
-
-      const animate = () => {
-        animationId = requestAnimationFrame(animate);
-        if (!isDragging.current) {
-          sphere.rotation.y += 0.0005; // Auto-rotación lenta
-        }
-        renderer.render(scene, camera);
-      };
-      animate();
-
-      // Mouse/Touch interactions
-      const onPointerDown = (e) => {
-        isDragging.current = true;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        previousMousePosition.current = { x: clientX, y: clientY };
-      };
-
-      const onPointerMove = (e) => {
-        if (!isDragging.current) return;
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-        const deltaMove = {
-          x: clientX - previousMousePosition.current.x,
-          y: clientY - previousMousePosition.current.y
-        };
-
-        const deltaRotationQuaternion = new THREE.Quaternion()
-          .setFromEuler(new THREE.Euler(
-            (deltaMove.y * (Math.PI / 180)) * 0.3,
-            (deltaMove.x * (Math.PI / 180)) * 0.3,
-            0,
-            'XYZ'
-          ));
-
-        sphere.quaternion.multiplyQuaternions(deltaRotationQuaternion, sphere.quaternion);
-        previousMousePosition.current = { x: clientX, y: clientY };
-      };
-
-      const onPointerUp = () => {
-        isDragging.current = false;
-      };
-
-      renderer.domElement.addEventListener('mousedown', onPointerDown);
-      renderer.domElement.addEventListener('mousemove', onPointerMove);
-      renderer.domElement.addEventListener('mouseup', onPointerUp);
-      renderer.domElement.addEventListener('touchstart', onPointerDown);
-      renderer.domElement.addEventListener('touchmove', onPointerMove);
-      renderer.domElement.addEventListener('touchend', onPointerUp);
-
-      return () => {
-        cancelAnimationFrame(animationId);
-        renderer.domElement.removeEventListener('mousedown', onPointerDown);
-        renderer.domElement.removeEventListener('mousemove', onPointerMove);
-        renderer.domElement.removeEventListener('mouseup', onPointerUp);
-        renderer.domElement.removeEventListener('touchstart', onPointerDown);
-        renderer.domElement.removeEventListener('touchmove', onPointerMove);
-        renderer.domElement.removeEventListener('touchend', onPointerUp);
-        renderer.dispose();
-        if (container.contains(renderer.domElement)) {
-          container.removeChild(renderer.domElement);
-        }
-      };
-    } catch (error) {
-      console.error('Error inicializando visor 360:', error);
-    }
-  }, [imageUrl]);
-
-  return <div ref={mountRef} className="w-full h-full rounded-t-2xl overflow-hidden bg-black" />;
+// Componente Visor Luma (reemplaza el visor 360° con Three.js)
+const PanoramaViewer = () => {
+  return (
+    <div className="w-full h-full relative bg-gray-100 overflow-hidden">
+      <iframe
+        src="https://lumalabs.ai/embed/4b2a92dc-983f-433e-aa43-f89db0ea5917?mode=sparkles&background=%23ffffff&color=%23000000&showTitle=true&loadBg=true&logoPosition=bottom-left&infoPosition=bottom-right&cinematicVideo=undefined&showMenu=false"
+        width="100%"
+        height="100%"
+        title="luma embed"
+        style={{ border: 'none' }}
+        className="absolute inset-0 w-full h-full"
+        allow="accelerometer; gyroscope; magnetometer; xr-spatial-tracking"
+      />
+    </div>
+  );
 };
 
 // Componente Modal Principal
@@ -129,80 +27,93 @@ const ModalPin = ({ selectedLocation, onClose, onCalculateRoute, routeInfo, isRo
   const [isExpanded, setIsExpanded] = useState(false);
   const [showSidePanel, setShowSidePanel] = useState(false);
 
+  // Resetear estado cuando cambia la ubicación seleccionada
+  useEffect(() => {
+    setIsExpanded(false);
+    setShowSidePanel(false);
+  }, [selectedLocation.id]);
+
   const handleExpandClick = (e) => {
     e.stopPropagation();
     if (!isExpanded) {
       setIsExpanded(true);
-    } else if (isExpanded && !showSidePanel) {
-      setShowSidePanel(true);
     } else {
-      setIsExpanded(false);
-      setShowSidePanel(false);
+      setShowSidePanel(!showSidePanel);
     }
   };
 
   return (
-    <div className="flex items-start">
-      {/* Modal Principal */}
-      <div className="w-[340px] bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border border-white/40 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden animate-scale-in h-[380px] flex flex-col">
-        {/* Visor 360 */}
-        <div className="h-48 relative bg-black">
-          <PanoramaViewer color={selectedLocation.color} />
-          <button
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="absolute top-2 right-2 p-1.5 bg-gray-200/80 dark:bg-black/40 hover:bg-gray-300 dark:hover:bg-black/60 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white rounded-full transition-colors backdrop-blur-sm border border-gray-300 dark:border-white/10"
-          >
-            <X size={14} />
-          </button>
-        </div>
+    <div className="relative flex items-stretch gap-0">
+      {/* MODAL PRINCIPAL - Alineado con panel lateral */}
+      <div
+        className="w-[340px] pointer-events-auto z-[100] animate-in zoom-in-95 fade-in duration-300 origin-bottom flex"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
+        <div className="bg-white/80 backdrop-blur-2xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[28px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.2)] border-transparent overflow-y-auto scrollbar-hide ring-1 ring-black/5 transition-all duration-300 flex flex-col w-full max-h-[550px]">
 
-        {/* Contenido */}
-        <div className="p-4 flex-1 flex flex-col">
-          <div className="mb-3">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{selectedLocation.name}</h3>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <p className="text-xs text-gray-500 dark:text-white/50 font-medium">
-                {selectedLocation.categoria || 'Lugar turístico'}
-              </p>
-              {(selectedLocation.lat !== undefined || selectedLocation.latitud !== undefined) && (
-                <span className="text-[10px] font-mono bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500 dark:text-white/30 border border-gray-200 dark:border-white/5">
-                  {(selectedLocation.lat ?? selectedLocation.latitud).toFixed(4)}, {(selectedLocation.lng ?? selectedLocation.longitud).toFixed(4)}
-                </span>
-              )}
+          {/* Visor Luma */}
+          <div className="relative w-full h-48 bg-gray-100 dark:bg-[#1c1c1e] group">
+            <PanoramaViewer />
+
+            {/* Overlay "LIVE" */}
+            <div className="absolute bottom-3 left-3 bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm pointer-events-none">
+              <div className="w-2 h-2 rounded-full border-2 border-black/80 dark:border-white/80 border-t-transparent animate-spin"></div>
+              <span className="text-[10px] font-bold text-black/80 dark:text-white/80 tracking-wide">3D LIVE</span>
             </div>
           </div>
 
-          {/* Descripción expandida */}
-          {isExpanded && (
-            <div className="mb-4 animate-expand-down">
-              <p className="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed mb-3">
-                {selectedLocation.descripcion || 'Descripción del lugar disponible próximamente.'}
-              </p>
-              {selectedLocation.website && (
-                <a
-                  href={selectedLocation.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                >
-                  <Globe size={12} />
-                  Sitio web
-                </a>
-              )}
+          {/* Contenido */}
+          <div className="p-5 flex-1 flex flex-col">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h2 className="text-[20px] font-semibold text-black dark:text-white tracking-tight leading-tight">
+                  {selectedLocation.name}
+                </h2>
+                <p className="text-[14px] text-gray-500 dark:text-gray-400 font-medium">
+                  {selectedLocation.categoria || 'Lugar turístico'}
+                </p>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
+                className="w-8 h-8 bg-gray-100 dark:bg-[#1c1c1e]/50 hover:bg-gray-200 dark:hover:bg-[#1c1c1e] rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 dark:hover:text-white transition-colors"
+              >
+                <X size={16} strokeWidth={2.5} />
+              </button>
             </div>
-          )}
 
-          {/* Botones de acción */}
-          <div className="flex gap-2 mt-auto">
-            {/* Botón de ruta */}
-            <div className="flex-1">
+            {/* Descripción expandida */}
+            {isExpanded && (
+              <div className="mt-4 mb-2 animate-in slide-in-from-top-4 fade-in duration-300">
+                <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed mb-3">
+                  {selectedLocation.descripcion || 'Explora este increíble lugar con vistas panorámicas únicas.'}
+                </p>
+                <div className="flex gap-2 mb-2">
+                  <span className="text-xs bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-md font-medium">Abierto</span>
+                  {selectedLocation.website && (
+                    <a
+                      href={selectedLocation.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-md hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+                    >
+                      Ver sitio web
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div className="flex gap-3 mt-auto">
               {routeInfo ? (
-                <div className="bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 rounded-xl p-2.5 flex items-center justify-between h-full">
-                  <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-200">
+                <div className="basis-2/3 bg-blue-50 dark:bg-blue-500/20 border-transparent rounded-2xl p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
                     <Clock size={16} />
                     <span className="font-bold text-sm">{routeInfo.duration} min</span>
                   </div>
-                  <div className="text-[10px] text-blue-600 dark:text-blue-300 font-medium">
+                  <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
                     {routeInfo.distance} km
                   </div>
                 </div>
@@ -210,7 +121,7 @@ const ModalPin = ({ selectedLocation, onClose, onCalculateRoute, routeInfo, isRo
                 <button
                   onClick={(e) => { e.stopPropagation(); onCalculateRoute(); }}
                   disabled={isRouting}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed h-full"
+                  className="basis-2/3 bg-[#007AFF] hover:bg-[#0062cc] active:scale-[0.98] transition-all text-white font-medium text-[15px] py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isRouting ? (
                     <>
@@ -219,56 +130,127 @@ const ModalPin = ({ selectedLocation, onClose, onCalculateRoute, routeInfo, isRo
                     </>
                   ) : (
                     <>
-                      <Navigation size={16} fill="currentColor" />
-                      Ir a lugar
+                      <Navigation size={18} strokeWidth={2.5} fill="currentColor" className="text-white/20" />
+                      <span>Ir al sitio</span>
                     </>
                   )}
                 </button>
               )}
-            </div>
 
-            {/* Botón expansor */}
-            <button
-              onClick={handleExpandClick}
-              className={`w-12 rounded-xl flex items-center justify-center transition-all border
-                ${showSidePanel
-                  ? 'bg-blue-600 text-white border-blue-600 scale-105 shadow-lg'
-                  : isExpanded
-                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-zinc-700 border-gray-200 dark:border-zinc-700'
-                    : 'bg-gray-50 dark:bg-zinc-800/50 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800 border-gray-200 dark:border-zinc-700/50'
-                }`}
-            >
-              {isExpanded ? <ArrowRight size={20} /> : <ChevronDown size={20} />}
-            </button>
+              <button
+                onClick={handleExpandClick}
+                className={`
+                  basis-1/3 active:scale-[0.95] transition-all rounded-2xl flex items-center justify-center
+                  ${showSidePanel
+                    ? 'bg-black dark:bg-white text-white dark:text-black ring-2 ring-offset-2 ring-black dark:ring-white'
+                    : isExpanded
+                      ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200'
+                      : 'bg-gray-100 dark:bg-[#1c1c1e]/50 hover:bg-gray-200 dark:hover:bg-[#1c1c1e] text-[#007AFF] dark:text-white'}
+                `}
+              >
+                {showSidePanel ? (
+                  <ArrowLeft size={24} strokeWidth={2.5} />
+                ) : isExpanded ? (
+                  <ArrowRight size={24} strokeWidth={2.5} />
+                ) : (
+                  <ChevronUp size={24} strokeWidth={2.5} />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Panel lateral de detalles (TODO: Cargar desde backend) */}
+      {/* MODAL LATERAL */}
       {showSidePanel && (
-        <div className="ml-2 w-[280px] bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border border-white/40 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden animate-slide-right h-[380px] flex flex-col z-10">
-          <div className="p-4 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Star size={14} className="text-orange-400 fill-orange-400" />
-              Información adicional
-            </h3>
-          </div>
+        <div
+          className="absolute left-full top-0 h-full w-[340px] ml-2 pointer-events-auto z-[90] animate-in slide-in-from-right-8 fade-in duration-300 flex"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
+          <div className="bg-white/90 backdrop-blur-2xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[28px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] border-transparent overflow-hidden ring-1 ring-black/5 flex flex-col w-full h-full">
 
-          <div className="flex-1 overflow-y-auto p-4 scrollbar-hide">
-            <p className="text-xs text-gray-600 dark:text-zinc-400 mb-4">
-              TODO: Cargar horarios, reseñas y detalles desde el backend.
-            </p>
+            {/* Cabecera del Panel Lateral */}
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between shrink-0">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2 tracking-tight">
+                <Star size={20} className="text-orange-400 fill-orange-400" />
+                Reseñas y Detalles
+              </h3>
+              <div className="bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full text-[10px] font-bold text-gray-500 dark:text-gray-300">
+                4.8 ★
+              </div>
+            </div>
 
-            {/* Placeholder para información adicional */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <div className="bg-blue-50 dark:bg-blue-500/10 p-2 rounded-xl text-center border border-blue-200 dark:border-blue-500/20">
-                <Clock className="mx-auto text-blue-600 dark:text-blue-400 mb-1" size={16} />
-                <span className="block text-[10px] font-semibold text-blue-700 dark:text-blue-200">Horario</span>
+            {/* Contenido Scrollable */}
+            <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-6">
+
+              {/* Sección de Estado y Horario */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/10 dark:to-blue-500/5 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border border-blue-100 dark:border-blue-500/10">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                    <Clock className="text-blue-600 dark:text-blue-400" size={18} strokeWidth={2.5} />
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[10px] uppercase tracking-wider font-bold text-blue-400 dark:text-blue-300/70 mb-0.5">Horario</span>
+                    <span className="block text-sm font-bold text-slate-700 dark:text-zinc-200">09:00 - 18:00</span>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 border border-emerald-100 dark:border-emerald-500/10">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                    <Globe className="text-emerald-600 dark:text-emerald-400" size={18} strokeWidth={2.5} />
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[10px] uppercase tracking-wider font-bold text-emerald-400 dark:text-emerald-300/70 mb-0.5">Estado</span>
+                    <span className="block text-sm font-bold text-slate-700 dark:text-zinc-200">Abierto Ahora</span>
+                  </div>
+                </div>
               </div>
-              <div className="bg-green-50 dark:bg-green-500/10 p-2 rounded-xl text-center border border-green-200 dark:border-green-500/20">
-                <Globe className="mx-auto text-green-600 dark:text-green-400 mb-1" size={16} />
-                <span className="block text-[10px] font-semibold text-green-700 dark:text-green-200">Estado</span>
+
+              {/* Separador */}
+              <div className="h-px bg-gray-100 dark:bg-white/5 w-full"></div>
+
+              {/* Lista de Reseñas */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-white/90">
+                    Comentarios Recientes
+                  </h4>
+                  <span className="text-xs text-slate-400 dark:text-white/40">3 nuevos</span>
+                </div>
+
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="group bg-gray-50/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 p-4 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-white/5 transition-all duration-300 shadow-sm hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-white/10 dark:to-white/5 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-white/80 ring-2 ring-white dark:ring-[#121214]">
+                        U{i}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-700 dark:text-white truncate">Usuario Demo {i}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-white/30">Hace 2h</span>
+                        </div>
+                        <div className="flex gap-0.5 mt-0.5">
+                          {[1, 2, 3, 4, 5].map(s => (
+                            <Star key={s} size={10} className={`${s <= 4 ? "fill-orange-400 text-orange-400" : "fill-gray-200 dark:fill-white/10 text-gray-200 dark:text-white/10"}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed pl-1 border-l-2 border-gray-100 dark:border-white/10">
+                      "Una experiencia increíble, las vistas 3D son lo mejor que he visto en una app de mapas. Definitivamente volveré pronto."
+                    </p>
+                  </div>
+                ))}
               </div>
+            </div>
+
+            {/* Pie del Panel */}
+            <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 shrink-0">
+              <button className="w-full py-3.5 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-200 active:scale-[0.98] text-white dark:text-black rounded-xl text-sm font-bold transition-all shadow-lg shadow-slate-900/10 dark:shadow-white/5">
+                Ver las 128 reseñas
+              </button>
             </div>
           </div>
         </div>
