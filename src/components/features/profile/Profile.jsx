@@ -7,7 +7,7 @@ import ImageViewer from './ImageViewer';
 import ProfileMenu from './ProfileMenu';
 import AuthScreen from './AuthScreen';
 
-const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme, starrySky, setStarrySky, darkMode, toggleDarkMode }) => {
+const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme, starrySky, setStarrySky, darkMode, toggleDarkMode, minimal = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [toast, setToast] = useState(null);
     const [viewingImage, setViewingImage] = useState(null); // { src, name }
@@ -75,7 +75,7 @@ const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme
                         <UserIcon size={20} />
                     )}
                 </div>
-                {!user && (
+                {!user && !minimal && (
                     <span className="pr-3 text-sm font-bold text-gray-700 dark:text-white hidden md:block">
                         Crear cuenta
                     </span>

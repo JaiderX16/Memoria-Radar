@@ -32,7 +32,7 @@ const Sidebar = ({
 
     return (
         <div className={userSidebarClasses}>
-            <Header setIsOpen={setIsOpen} />
+            <Header setIsOpen={setIsOpen} places={lugares} onPlaceClick={onLugarClick} />
 
             <div className="flex-grow overflow-y-auto scrollbar-hide pt-2">
                 <Search value={searchTerm} onChange={onSearch} />

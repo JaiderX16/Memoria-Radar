@@ -11,16 +11,40 @@ import {
   TooltipContent,
   TooltipTrigger
 } from './MapLibre';
-import { Info, MessageSquare, MapPin, Plus, X } from 'lucide-react';
-import FormularioLugar from '@/components/features/places/FormularioLugar';
+import { Info, MessageSquare, MapPin, Plus, X, Search, Globe } from 'lucide-react';
+import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import ModalPin from './ModalPin';
+import SearchModal from '@/components/features/search/SearchModal';
+import Profile from '@/components/features/profile/Profile';
 
-export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick, isAddingMode, onMapClick, selectedLugar, selectedEvento, onToggleChat, chatState, mapTheme, starrySky }) {
+export default function Mapa({
+  lugares,
+  eventos = [],
+  onLugarClick,
+  onEventClick,
+  isAddingMode,
+  onMapClick,
+  selectedLugar,
+  selectedEvento,
+  onToggleChat,
+  chatState,
+  mapTheme,
+  starrySky,
+  user,
+  setUser,
+  showTools,
+  setShowTools,
+  setMapTheme,
+  setStarrySky,
+  darkMode,
+  toggleDarkMode
+}) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
   const [isMarkerVisible, setIsMarkerVisible] = useState(true);
   const [isAddingPoint, setIsAddingPoint] = useState(false);
+  const [isExtractingMode, setIsExtractingMode] = useState(false);
   const [newPoints, setNewPoints] = useState([]);
   const [tempPoint, setTempPoint] = useState(null);
   const [showPointForm, setShowPointForm] = useState(false);
@@ -28,6 +52,7 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
   const [routeData, setRouteData] = useState(null);
   const [isRouting, setIsRouting] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Solicitar ubicación automáticamente al cargar
   useEffect(() => {
@@ -53,6 +78,18 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
         }
       );
     }
+  }, []);
+
+  // Toggle buscador con ⌘+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Verificar visibilidad del marcador (ocultar completamente si está detrás del globo)
@@ -130,23 +167,158 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
     };
   }, [starrySky, mapRef.current]); // Re-ejecutar si se activa/desactiva o cambia el mapa
 
-  // Manejar clicks en el mapa cuando está en modo agregar
+  // Manejar clicks en el mapa cuando está en modo agregar o modo extracción
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    const handleMapClick = (e) => {
+    const handleMapClick = async (e) => {
+      const { lng, lat } = e.lngLat;
+
       if (isAddingPoint) {
-        const { lng, lat } = e.lngLat;
-        setTempPoint({ longitud: lng, latitud: lat });
+        // Efecto visual inmediato de carga
+        setTempPoint({
+          longitud: lng,
+          latitud: lat,
+          nombre: 'Cargando datos...',
+          continente_nombre: '',
+          pais_nombre: '',
+          region_nombre: '',
+          ciudad_nombre: '',
+          direccion_completa: '',
+          direccion: ''
+        });
         setShowPointForm(true);
+
+        try {
+          // Reverse Geocoding usando Nominatim (OpenStreetMap)
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+            headers: {
+              'Accept-Language': 'es',
+              'User-Agent': 'MemoriaRadar/1.0 (contact@memoriaradar.com)'
+            }
+          });
+          const data = await response.json();
+
+          if (data) {
+            const addr = data.address || {};
+
+            // 4 Puntos Clave: Continente, País, Región, Ciudad
+            // Nominatim no siempre da continente, intentamos inferir o usar el que dé
+            const continente = addr.continent || (['pe', 'co', 'ar', 'cl', 'mx', 'us', 'br'].includes(addr.country_code) ? 'América' : '');
+            const pais = addr.country || '';
+            const region = addr.state || addr.region || addr.province || '';
+            // Ciudad: priorizar city, luego town, luego village. Ignorar suburb/district para este campo específico.
+            const ciudad = addr.city || addr.town || addr.village || addr.municipality || '';
+
+            const road = addr.road || '';
+            const houseNumber = addr.house_number || '';
+            const displayName = data.display_name || '';
+
+            setTempPoint({
+              longitud: lng,
+              latitud: lat,
+              nombre: data.name || road || ciudad || 'Nuevo Lugar',
+              direccion_completa: displayName,
+              direccion: road + (houseNumber ? ` ${houseNumber}` : ''),
+              continente_nombre: continente,
+              pais_nombre: pais,
+              region_nombre: region,
+              ciudad_nombre: ciudad,
+              // Mantener compatibilidad si se usa en otros lados
+              tipo: addr.amenity || addr.shop || addr.tourism || addr.historic || null
+            });
+          }
+        } catch (error) {
+          console.error('Error in reverse geocoding:', error);
+          setTempPoint({ longitud: lng, latitud: lat, nombre: '' });
+        }
+      } else if (isExtractingMode) {
+        // Lógica de extracción jerárquica para obtener IDs estables
+        try {
+          const headers = {
+            'Accept-Language': 'es',
+            'User-Agent': 'MemoriaRadar/1.0 (contact@memoriaradar.com)' // Identificación requerida por Nominatim
+          };
+
+          // 1. Nivel Objeto/Calle (Zoom 18)
+          const resp1 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&extratags=1`, { headers });
+          if (!resp1.ok) throw new Error(`Error en nivel calle: ${resp1.statusText}`);
+          const data1 = await resp1.json();
+
+          // 2. Nivel Ciudad (Zoom 10)
+          const resp2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`, { headers });
+          if (!resp2.ok) throw new Error(`Error en nivel ciudad: ${resp2.statusText}`);
+          const data2 = await resp2.json();
+
+          // 3. Nivel Región (Zoom 5) - Estado/Departamento
+          const resp3 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=5&addressdetails=1`, { headers });
+          if (!resp3.ok) throw new Error(`Error en nivel región: ${resp3.statusText}`);
+          const data3 = await resp3.json();
+
+          // 4. Nivel País (Zoom 3)
+          const resp4 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=3&addressdetails=1`, { headers });
+          if (!resp4.ok) throw new Error(`Error en nivel país: ${resp4.statusText}`);
+          const data4 = await resp4.json();
+
+          if (data1) {
+            const addr = data1.address || {};
+            const countryCode = addr.country_code?.toUpperCase() || 'N/A';
+
+            // Continentes mapping
+            const continentMap = {
+              'PE': 'América del Sur', 'CO': 'América del Sur', 'AR': 'América del Sur', 'CL': 'América del Sur',
+              'MX': 'América del Norte', 'US': 'América del Norte', 'CA': 'América del Norte',
+              'ES': 'Europa', 'FR': 'Europa', 'DE': 'Europa', 'IT': 'Europa', 'PT': 'Europa'
+            };
+            const continente = continentMap[countryCode] || 'América';
+
+            const info = `
+IDENTIFICADORES JERÁRQUICOS:
+---------------------------
+CONTINENTE: ${continente}
+   -> ID sugerido: ${countryCode === 'PE' ? 1 : countryCode} (Mapeo interno)
+
+PAÍS: ${addr.country || 'N/A'}
+   -> ID (ISO): ${countryCode}
+   -> OSM ID: ${data4.osm_id || 'N/A'} (Referencia país)
+
+REGIÓN/ESTADO: ${addr.state || addr.province || addr.region || 'N/A'}
+   -> OSM ID (Estable): ${data3.osm_id} (${data3.type})
+
+CIUDAD/MUNICIPIO: ${addr.city || addr.town || addr.village || 'N/A'}
+   -> OSM ID (Estable): ${data2.osm_id} (${data2.type})
+
+DETALLES ESPECÍFICOS:
+---------------------
+DIRECCIÓN: ${data1.display_name}
+OBJETO OSM: ${data1.osm_id} (${data1.type})
+CP: ${addr.postcode || 'N/A'}
+
+---------------------------
+TIP: Estos IDs (como el ${data2.osm_id} para ${addr.city} y ${data4.osm_id} para ${addr.country}) son los que debes guardar.
+            `;
+
+            console.log('--- EXTRACCIÓN JERÁRQUICA ---');
+            console.log('Calle:', data1);
+            console.log('Ciudad:', data2);
+            console.log('Región:', data3);
+            console.log('País:', data4);
+
+            alert(info);
+            setIsExtractingMode(false);
+          }
+        } catch (error) {
+          console.error('Error in hierarchical extraction:', error);
+          alert(`Error al extraer la jerarquía de datos: ${error.message}`);
+        }
       }
     };
 
     map.on('click', handleMapClick);
 
-    // Cambiar cursor cuando está en modo agregar
-    if (isAddingPoint) {
+    // Cambiar cursor cuando está en modo agregar o extracción
+    if (isAddingPoint || isExtractingMode) {
       map.getCanvas().style.cursor = 'crosshair';
     } else {
       map.getCanvas().style.cursor = '';
@@ -156,11 +328,20 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
       map.off('click', handleMapClick);
       map.getCanvas().style.cursor = '';
     };
-  }, [isAddingPoint]);
+  }, [isAddingPoint, isExtractingMode]);
 
   // Función para activar/desactivar modo agregar
   const toggleAddingMode = () => {
     setIsAddingPoint(!isAddingPoint);
+    setIsExtractingMode(false); // Asegurar que el otro modo esté apagado
+    setTempPoint(null);
+    setShowPointForm(false);
+  };
+
+  // Función para activar modo extracción (Pruebas)
+  const toggleExtractingMode = () => {
+    setIsExtractingMode(!isExtractingMode);
+    setIsAddingPoint(false); // Asegurar que el otro modo esté apagado
     setTempPoint(null);
     setShowPointForm(false);
   };
@@ -177,6 +358,21 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
   const handleCancelPoint = () => {
     setTempPoint(null);
     setShowPointForm(false);
+  };
+
+  const handleSelectSpot = (spot) => {
+    // Identificar si es lugar o evento para llamar al handler correcto
+    // Los eventos suelen tener 'date' o 'title' en lugar de 'nombre'
+    const isEvento = spot.date || spot.title;
+
+    if (isEvento) {
+      if (onEventClick) onEventClick(spot);
+    } else {
+      if (onLugarClick) onLugarClick(spot);
+    }
+
+    // El useEffect que escucha a selectedLugar/selectedEvento se encargará
+    // de llamar a handleMarkerClick y hacer el flyTo automáticamente.
   };
 
   // Función para manejar click en marcador
@@ -376,8 +572,8 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
         projection={{ type: 'globe' }}
         mapTheme={mapTheme}
         starrySky={starrySky}
-        center={[0, 20]}
-        zoom={1.5}
+        center={[-75.21, -12.06805]}
+        zoom={14.5}
         attributionControl={false}
       >
         <MapControls
@@ -466,7 +662,7 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
           </MapMarker>
         )}
 
-        {/* Marcadores de lugares desde el backend/mock */}
+        {/* Marcadores de lugares desde el backend */}
         {lugares.map((lugar) => (
           <MapMarker
             key={lugar.id}
@@ -533,43 +729,110 @@ export default function Mapa({ lugares, eventos = [], onLugarClick, onEventClick
 
       </Map>
 
-      {/* Botón flotante para agregar puntos de interés */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Herramientas Flotantes */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-3 items-center">
+        {/* Botón Perfil / Usuario */}
+        <Profile
+          user={user}
+          setUser={setUser}
+          showTools={showTools}
+          setShowTools={setShowTools}
+          mapTheme={mapTheme}
+          setMapTheme={setMapTheme}
+          starrySky={starrySky}
+          setStarrySky={setStarrySky}
+          darkMode={darkMode}
+          toggleDarkMode={toggleDarkMode}
+          minimal={true}
+        />
+
+        {/* Botón Buscar */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="w-12 h-12 bg-white/90 dark:bg-black/90 backdrop-blur-md hover:bg-gray-100 dark:hover:bg-white/10 text-slate-900 dark:text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-90 border border-white/20"
+            >
+              <Search size={22} strokeWidth={3} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+            <p>Buscar lugares (Ctrl+K)</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Botón de Extracción de Datos (PRUEBAS) */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={toggleExtractingMode}
+              className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center active:scale-90 border border-white/20 ${isExtractingMode
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-white/90 dark:bg-black/90 text-blue-600 dark:text-blue-400'
+                }`}
+            >
+              <Globe size={22} strokeWidth={3} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+            <p>{isExtractingMode ? 'Cancelar Extracción' : 'Pruebas: Extraer Datos'}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Botón flotante para agregar puntos de interés */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={toggleAddingMode}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all duration-300 ${isAddingPoint
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-green-500 hover:bg-green-600 text-white'
+              className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center active:scale-90 border border-white/20 ${isAddingPoint
+                ? 'bg-red-500/90 hover:bg-red-600/90 text-white'
+                : 'bg-green-500/90 hover:bg-green-600/90 text-white'
                 }`}
             >
-              {isAddingPoint ? (
-                <>
-                  <X className="w-5 h-5" />
-                  <span className="font-semibold">Cancelar</span>
-                </>
-              ) : (
-                <>
-                  <Plus className="w-5 h-5" />
-                  <span className="font-semibold">Agregar Punto</span>
-                </>
-              )}
+              {isAddingPoint ? <X size={22} strokeWidth={3} /> : <Plus size={22} strokeWidth={3} />}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
-            <p>{isAddingPoint ? 'Cancelar agregar punto' : 'Agregar punto de interés al mapa'}</p>
+          <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+            <p>{isAddingPoint ? 'Cancelar' : 'Agregar Punto'}</p>
           </TooltipContent>
         </Tooltip>
       </div>
+
+      {/* Modal de Búsqueda Inmersivo */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onSelectSpot={handleSelectSpot}
+        spots={[...lugares, ...eventos]}
+      />
 
       {/* Formulario profesional para agregar detalles del punto */}
       <FormularioLugar
         isOpen={showPointForm && tempPoint !== null}
         onClose={handleCancelPoint}
         onSubmit={handleSavePoint}
-        initialCoords={tempPoint ? { lat: tempPoint.latitud, lng: tempPoint.longitud } : null}
+        initialCoords={tempPoint ? {
+          lat: tempPoint.latitud,
+          lng: tempPoint.longitud,
+          nombre: tempPoint.nombre,
+          direccion_completa: tempPoint.direccion_completa,
+          direccion: tempPoint.direccion,
+          continente_nombre: tempPoint.continente_nombre,
+          pais_nombre: tempPoint.pais_nombre,
+          region_nombre: tempPoint.region_nombre,
+          ciudad_nombre: tempPoint.ciudad_nombre
+        } : null}
       />
+
+      {/* Indicador de modo extracción activo */}
+      {isExtractingMode && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl animate-pulse border border-white/20 flex items-center gap-3">
+            <Globe className="w-5 h-5" />
+            <p className="text-sm font-bold uppercase tracking-wider">Modo Extracción: Haz clic en el mapa</p>
+          </div>
+        </div>
+      )}
 
       {/* Indicador de modo agregar activo */}
       {isAddingPoint && !showPointForm && (

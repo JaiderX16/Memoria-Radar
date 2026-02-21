@@ -1,0 +1,32 @@
+{
+  "places": {
+    "status": 200,
+    "headers": {
+      "x-powered-by": "Express",
+      "access-control-allow-origin": "*",
+      "access-control-allow-credentials": "true",
+      "content-type": "application/json; charset=utf-8",
+      "content-length": "12867",
+      "etag": "W/\"3243-MCy7AokZXkK2suc4duj0n4WrjGg\"",
+      "date": "Thu, 12 Feb 2026 02:43:26 GMT",
+      "connection": "keep-alive",
+      "keep-alive": "timeout=5"
+    },
+    "body": "{\"status\":\"success\",\"success\":true,\"message\":\"Lugares obtenidos exitosamente\",\"data\":{\"lugares\":[{\"id\":51,\"usuario_creador_id\":null,\"distrito_id\":1,\"categoria_id\":1,\"nombre\":\"Museo de Arte de Lima (MALI)\",\"descripcion_completa\":\"El MALI cuenta con una de las colecciones más representativas de arte peruano...\",\"descripcion_corta\":\"Uno de los museos más importantes del Perú.\",\"direccion_completa\":\"Paseo Colón 125, Lima\",\"ubicacion\":{\"x\":-77.0369,\"y\":-12.0601},\"es_zona_centrica\":1,\"es_zona_afueras\":0,\"popularidad_score\":\"0.00\",\"calificacion_promedio\":\"2.00\",\"total_resenas\":2,\"total_visitas\":13,\"es_verificado\":0,\"estado\":\"activo\",\"fecha_creacion\":\"2026-01-22T04:46:10.000Z\",\"fecha_actualizacion\":\"2026-02-05T03:32:33.000Z\",\"imagen_principal\":\"https://images.unsplash.com/photo-1518998053574-53f1f61f938d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80\",\"es_destacado\":1,\"es_patrimonio\":0,\"total_favoritos\":0,\"anio_construccion\":null,\"arquitecto\":null,\"estilo_arquitectonico\":null,\"horario_apertura\":null,\"horario_cierre\":null,\"dias_operacion\":null,\"precio_entrada\":null,\"telefono\":null,\"email\":null,\"sitio_web\":null,\"subcategoria_id\":null,\"descripcion_larga\":null,\"es_activo\":1,\"direccion\":null,\"latitud\":\"-12.06010000\",\"longitud\":\"-77.03690000\",\"ciudad_id\":1,\"pais_id\":1,\"fecha_registro\":\"2026-01-22T04:46:10.000Z\",\"longitud_point\":-77.0369,\"latitud_point\":-12.0601,\"categoria_nombre\":\"Museos\"},{\"id\":52,\"usuario_creador_id\":null,\"distrito_id\":1,\"categoria_id\":2,\"nombre\":\"Parque del Amor\",\"descripcion_completa\":\"Ubicado en el malecón de Miraflores, famoso por su escultura El Beso...\",\"descripcion_corta\":\"Parque emblemático de Miraflores con vista al mar.\",\"direccion_completa\":\"Malecón Cisneros, Miraflores\",\"ubicacion\":{\"x\":-77.0392,\"y\":-12.1256},\"es_zona_centrica\":1,\"es_zona_afueras\":0,\"popularidad_score\":\"0.00\",\"calificacion_promedio\":\"0.00\",\"total_resenas\":0,\"total_visitas\":1,\"es_verificado\":0,\"estado\":\"activo\",\"fecha_creacion\":\"2026-01-22T04:46:10.000Z\",\"fecha_actualizacion\":\"2026-0"
+  },
+  "events": {
+    "status": 200,
+    "headers": {
+      "x-powered-by": "Express",
+      "access-control-allow-origin": "*",
+      "access-control-allow-credentials": "true",
+      "content-type": "application/json; charset=utf-8",
+      "content-length": "814",
+      "etag": "W/\"32e-66yXigQeJ0skOeSzYxX1r9Ys0dk\"",
+      "date": "Thu, 12 Feb 2026 02:43:26 GMT",
+      "connection": "keep-alive",
+      "keep-alive": "timeout=5"
+    },
+    "body": "{\"status\":\"success\",\"success\":true,\"message\":\"Eventos obtenidos exitosamente\",\"data\":{\"eventos\":[{\"id\":2,\"nombre\":\"Gran Fiesta de Aniversario MEMORIA\",\"descripcion_completa\":\"Celebramos nuestro tercer aniversario con música en vivo y sorpresas.\",\"descripcion_corta\":\"Aniversario MEMORIA\",\"fecha_inicio\":\"2026-01-25T02:39:31.000Z\",\"fecha_fin\":\"2027-01-01T04:59:59.000Z\",\"lugar_id\":null,\"direccion\":\"Av. Larco 123, Miraflores\",\"longitud\":-77.0298,\"latitud\":-12.1227,\"categoria_id\":4,\"precio_entrada\":\"25.00\",\"capacidad_maxima\":200,\"asistentes_confirmados\":2,\"estado\":\"programado\",\"fecha_creacion\":\"2026-01-23T02:39:31.000Z\",\"url_video\":null,\"permite_notificaciones\":1,\"lugar_nombre\":null,\"categoria_nombre\":\"Aniversarios\",\"cuenta_regresiva\":null,\"imagen_principal\":null}],\"total\":1,\"limit\":10,\"offset\":0,\"count\":1}}"
+  }
+}

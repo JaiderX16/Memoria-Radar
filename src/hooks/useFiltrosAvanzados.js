@@ -28,7 +28,7 @@ export const useFiltrosAvanzados = (lugares) => {
 
   // Aplicar filtros
   const lugaresConFiltros = useMemo(() => {
-    let filtered = [...lugares];
+    let filtered = Array.isArray(lugares) ? [...lugares] : [];
 
     // Filtro por término de búsqueda
     if (searchTerm.trim()) {

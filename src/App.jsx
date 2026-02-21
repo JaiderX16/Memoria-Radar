@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import Mapa from '@/components/features/map/Mapa';
-import Sidebar from '@/components/layout/Sidebar/user/UserSidebar';
+import Sidebar from '@/components/features/sidebar/user/UserSidebar';
 import SidebarBusiness from '@/components/layout/Sidebar/business/BusinessSidebar';
 import SidebarAdmin from '@/components/layout/Sidebar/admin/AdminSidebar';
 import Profile from '@/components/features/profile/Profile';
-import FormularioLugar from '@/components/features/places/FormularioLugar';
+import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import ChatBot from '@/components/features/chat/ChatBot';
 import { useFiltrosAvanzados } from '@/hooks/useFiltrosAvanzados';
-import { MOCK_PLACES } from '@/data/mockPlaces';
-import { MOCK_EVENTS } from '@/data/mockEvents';
+import { getPlaces, getEvents, createPlace, createEvent } from '@/services/api';
+
 
 function App() {
     const [lugares, setLugares] = useState([]);
@@ -117,15 +117,57 @@ function App() {
 
         const url = `/api/places${params.toString() ? `?${params.toString()}` : ''}`;
 
-        // Cargar datos mockeados inicialmente
-        setLugares(MOCK_PLACES);
-        setEventos(MOCK_EVENTS);
-        window.lugares = MOCK_PLACES;
-        window.eventos = MOCK_EVENTS;
+        const fetchData = async () => {
+            try {
+                const [placesData, eventsData] = await Promise.all([
+                    getPlaces(Object.fromEntries(params)),
+                    getEvents(Object.fromEntries(params))
+                ]);
 
-        // Simular carga o mantener fetch si se desea, pero priorizar mock por ahora
-        // const fetchPlaces = async () => { ... }
-        // fetchPlaces();
+                // Ajustar respuesta según estructura del backend si es necesario
+                console.log('DEBUG: placesData received:', placesData);
+                console.log('DEBUG: eventsData received:', eventsData);
+
+                // Helper to extract array from various possible API response structures
+                const extractArray = (data, key) => {
+                    if (!data) return [];
+                    if (Array.isArray(data)) return data;
+                    if (data.data && Array.isArray(data.data)) return data.data;
+                    if (data.data && data.data[key] && Array.isArray(data.data[key])) return data.data[key];
+                    if (data[key] && Array.isArray(data[key])) return data[key];
+                    return [];
+                };
+
+                const rawPlaces = extractArray(placesData, 'lugares');
+                const rawEvents = extractArray(eventsData, 'eventos');
+
+                // Sanitize and filter places
+                const places = rawPlaces.map(p => ({
+                    ...p,
+                    latitud: parseFloat(p.latitud),
+                    longitud: parseFloat(p.longitud)
+                })).filter(p => !isNaN(p.latitud) && !isNaN(p.longitud));
+
+                // Sanitize and filter events
+                const events = rawEvents.map(e => ({
+                    ...e,
+                    lat: parseFloat(e.lat || e.latitud), // Handle both naming conventions
+                    lng: parseFloat(e.lng || e.longitud)
+                })).filter(e => !isNaN(e.lat) && !isNaN(e.lng));
+
+                console.log('DEBUG: Sanitized places:', places);
+                console.log('DEBUG: Sanitized events:', events);
+
+                setLugares(places);
+                setEventos(events);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setLugares([]);
+                setEventos([]);
+            }
+        };
+
+        fetchData();
 
         return () => controller.abort();
     }, [selectedCategories, searchTerm]);
@@ -165,11 +207,21 @@ function App() {
         setNewLugarCoords(null);
         setIsAddingMode(false);
     };
-    const handleSubmitLugar = (nuevoPunto) => {
-        if (nuevoPunto.type === 'evento') {
-            setEventos(prev => [...prev, nuevoPunto]);
-        } else {
-            setLugares(prev => [...prev, nuevoPunto]);
+    const handleSubmitLugar = async (nuevoPunto) => {
+        try {
+            if (nuevoPunto.type === 'evento') {
+                const response = await createEvent(nuevoPunto);
+                setEventos(prev => [...prev, response.data || response]);
+            } else {
+                const response = await createPlace(nuevoPunto);
+                setLugares(prev => [...prev, response.data || response.data?.lugar || response]);
+            }
+            setIsFormOpen(false);
+            setNewLugarCoords(null);
+            setIsAddingMode(false);
+        } catch (error) {
+            console.error('Error saving data:', error);
+            alert('Error al guardar. Inténtalo de nuevo.');
         }
     };
     const handleDeleteLugar = (lugarId) => {
@@ -203,6 +255,14 @@ function App() {
                 chatState={chatState}
                 mapTheme={mapTheme}
                 starrySky={starrySky}
+                user={user}
+                setUser={setUser}
+                showTools={showTools}
+                setShowTools={setShowTools}
+                setMapTheme={setMapTheme}
+                setStarrySky={setStarrySky}
+                darkMode={darkMode}
+                toggleDarkMode={toggleDarkMode}
             />
 
             {/* Top Bar Container */}
@@ -245,21 +305,8 @@ function App() {
                     )}
                 </div>
 
-                {/* Right: Profile Container */}
-                <div className="w-[52px] flex justify-end pointer-events-auto">
-                    <Profile
-                        user={user}
-                        setUser={setUser}
-                        showTools={showTools}
-                        setShowTools={setShowTools}
-                        mapTheme={mapTheme}
-                        setMapTheme={setMapTheme}
-                        starrySky={starrySky}
-                        setStarrySky={setStarrySky}
-                        darkMode={darkMode}
-                        toggleDarkMode={toggleDarkMode}
-                    />
-                </div>
+                {/* Right: Spacer for symmetry */}
+                <div className="w-[52px] pointer-events-none" />
             </div>
 
             <Sidebar

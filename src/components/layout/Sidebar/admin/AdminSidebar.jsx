@@ -13,7 +13,7 @@ import {
     Briefcase,
     Settings
 } from 'lucide-react';
-import FormularioLugar from '@/components/features/places/FormularioLugar';
+import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import DashboardView from '@/components/dashboards/DashboardView';
 import MapView from '@/components/dashboards/MapView';
 import UsersView from '@/components/dashboards/UsersView';

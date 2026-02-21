@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     MapPin, Navigation, Star, TrendingUp, Plus, BarChart3, X, Globe, Settings, Trash2
 } from 'lucide-react';
-import FormularioLugar from '@/components/features/places/FormularioLugar';
+import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 
 const SidebarBusiness = ({ lugares, onAddLugar, setIsOpen, isOpen }) => {
     const [activePanel, setActivePanel] = useState(null);
