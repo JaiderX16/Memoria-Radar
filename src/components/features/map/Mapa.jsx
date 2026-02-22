@@ -53,6 +53,8 @@ export default function Mapa({
   const [routeData, setRouteData] = useState(null);
   const [isRouting, setIsRouting] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false); // Nuevo estado de carga
+  const abortControllerRef = useRef(null);
 
   // Solicitar ubicación automáticamente al cargar
   useEffect(() => {
@@ -233,84 +235,91 @@ export default function Mapa({
           console.error('Error in reverse geocoding:', error);
           setTempPoint({ longitud: lng, latitud: lat, nombre: '' });
         }
-      } else if (isExtractingMode) {
-        // Lógica de extracción jerárquica para obtener IDs estables
-        try {
-          const headers = {
+      } else if (isExtractingMode && !isExtracting) {
+        // Bloqueo de concurrencia y limpieza de previa
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        setIsExtracting(true);
+
+        const fetchParams = {
+          headers: {
             'Accept-Language': 'es',
-            'User-Agent': 'MemoriaRadar/1.0 (contact@memoriaradar.com)' // Identificación requerida por Nominatim
-          };
+            'User-Agent': 'MemoriaRadar/2.0 (Fast-Extractor)'
+          },
+          signal: controller.signal
+        };
 
-          // 1. Nivel Objeto/Calle (Zoom 18)
-          const resp1 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&extratags=1`, { headers });
-          if (!resp1.ok) throw new Error(`Error en nivel calle: ${resp1.statusText}`);
-          const data1 = await resp1.json();
+        try {
+          const { lat, lng } = e.lngLat;
 
-          // 2. Nivel Ciudad (Zoom 10)
-          const resp2 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`, { headers });
-          if (!resp2.ok) throw new Error(`Error en nivel ciudad: ${resp2.statusText}`);
-          const data2 = await resp2.json();
+          // ESTRATEGIA: Obtener el nivel mas detallado PRIMERO y usar sus metadatos
+          // para rellenar los huecos inmediatamente. Paralelizar solo lo necesario.
+          const [data1, data2, data3, data4] = await Promise.all([
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=5&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=3&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null)
+          ]);
 
-          // 3. Nivel Región (Zoom 5) - Estado/Departamento
-          const resp3 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=5&addressdetails=1`, { headers });
-          if (!resp3.ok) throw new Error(`Error en nivel región: ${resp3.statusText}`);
-          const data3 = await resp3.json();
-
-          // 4. Nivel País (Zoom 3)
-          const resp4 = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=3&addressdetails=1`, { headers });
-          if (!resp4.ok) throw new Error(`Error en nivel país: ${resp4.statusText}`);
-          const data4 = await resp4.json();
-
-          if (data1) {
-            const addr = data1.address || {};
-            const countryCode = addr.country_code?.toUpperCase() || 'N/A';
-
-            // Continentes mapping
-            const continentMap = {
-              'PE': 'América del Sur', 'CO': 'América del Sur', 'AR': 'América del Sur', 'CL': 'América del Sur',
-              'MX': 'América del Norte', 'US': 'América del Norte', 'CA': 'América del Norte',
-              'ES': 'Europa', 'FR': 'Europa', 'DE': 'Europa', 'IT': 'Europa', 'PT': 'Europa'
-            };
-            const continente = continentMap[countryCode] || 'América';
-
-            const info = `
-IDENTIFICADORES JERÁRQUICOS:
----------------------------
-CONTINENTE: ${continente}
-   -> ID sugerido: ${countryCode === 'PE' ? 1 : countryCode} (Mapeo interno)
-
-PAÍS: ${addr.country || 'N/A'}
-   -> ID (ISO): ${countryCode}
-   -> OSM ID: ${data4.osm_id || 'N/A'} (Referencia país)
-
-REGIÓN/ESTADO: ${addr.state || addr.province || addr.region || 'N/A'}
-   -> OSM ID (Estable): ${data3.osm_id} (${data3.type})
-
-CIUDAD/MUNICIPIO: ${addr.city || addr.town || addr.village || 'N/A'}
-   -> OSM ID (Estable): ${data2.osm_id} (${data2.type})
-
-DETALLES ESPECÍFICOS:
----------------------
-DIRECCIÓN: ${data1.display_name}
-OBJETO OSM: ${data1.osm_id} (${data1.type})
-CP: ${addr.postcode || 'N/A'}
-
----------------------------
-TIP: Estos IDs (como el ${data2.osm_id} para ${addr.city} y ${data4.osm_id} para ${addr.country}) son los que debes guardar.
-            `;
-
-            console.log('--- EXTRACCIÓN JERÁRQUICA ---');
-            console.log('Calle:', data1);
-            console.log('Ciudad:', data2);
-            console.log('Región:', data3);
-            console.log('País:', data4);
-
-            alert(info);
-            setIsExtractingMode(false);
+          // Si falla todo, lanzar un error claro para el catch
+          if (!data1 && !data2 && !data3 && !data4) {
+            throw new Error('Sin conexión o API límite alcanzado');
           }
+
+          // Consolidación inteligente de datos
+          const main = data1 || data2 || data3 || data4;
+          const addr = main.address || {};
+
+          // Fallback en cascada para nombres
+          const paisNombre = addr.country || data4?.address?.country || data3?.address?.country || 'N/A';
+          const countryCode = (addr.country_code || data4?.address?.country_code || 'N/A').toUpperCase();
+          const regionNombre = addr.state || addr.province || addr.region || data3?.address?.state || 'N/A';
+          const ciudadNombre = addr.city || addr.town || addr.village || addr.municipality || data2?.address?.city || 'N/A';
+
+          // IDs estables: Si no tenemos el exacto, heredamos del nivel superior disponible
+          const countryID = data4?.osm_id || data3?.osm_id || 'N/A';
+          const regionID = data3?.osm_id || data2?.osm_id || data4?.osm_id || 'N/A';
+          const cityID = data2?.osm_id || data1?.osm_id || 'N/A';
+
+          const continentMap = {
+            'PE': 'América del Sur', 'CO': 'América del Sur', 'AR': 'América del Sur', 'CL': 'América del Sur',
+            'MX': 'América del Norte', 'US': 'América del Norte', 'CA': 'América del Norte', 'ES': 'Europa'
+          };
+          const continente = addr.continent || data4?.address?.continent || continentMap[countryCode] || 'América';
+
+          const info = `
+IDENTIFICADORES JERÁRQUICOS (Extracción Rápida):
+----------------------------------------------
+CONTINENTE: ${continente}
+   -> ID sugerido: ${countryCode === 'PE' ? 1 : countryCode}
+
+PAÍS: ${paisNombre}
+   -> ID (ISO): ${countryCode}
+   -> OSM ID: ${countryID}
+
+REGIÓN/ESTADO: ${regionNombre}
+   -> OSM ID: ${regionID}
+
+CIUDAD/MUNICIPIO: ${ciudadNombre}
+   -> OSM ID: ${cityID}
+
+DETALLES:
+---------
+DIRECCIÓN: ${main.display_name || 'Ubicación aproximada'}
+OBJETO: ${main.osm_id} (${main.type})
+          `;
+
+          alert(info);
+          setIsExtractingMode(false);
         } catch (error) {
-          console.error('Error in hierarchical extraction:', error);
-          alert(`Error al extraer la jerarquía de datos: ${error.message}`);
+          if (error.name === 'AbortError') return;
+          console.error('Fast extraction error:', error);
+          alert(`Error: ${error.message}. Por favor, aguarda un segundo e intenta de nuevo.`);
+        } finally {
+          setIsExtracting(false);
+          abortControllerRef.current = null;
         }
       }
     };
@@ -318,8 +327,10 @@ TIP: Estos IDs (como el ${data2.osm_id} para ${addr.city} y ${data4.osm_id} para
     map.on('click', handleMapClick);
 
     // Cambiar cursor cuando está en modo agregar o extracción
-    if (isAddingPoint || isExtractingMode) {
+    if (isAddingPoint || (isExtractingMode && !isExtracting)) {
       map.getCanvas().style.cursor = 'crosshair';
+    } else if (isExtracting) {
+      map.getCanvas().style.cursor = 'wait';
     } else {
       map.getCanvas().style.cursor = '';
     }
@@ -766,12 +777,13 @@ TIP: Estos IDs (como el ${data2.osm_id} para ${addr.city} y ${data4.osm_id} para
           <TooltipTrigger asChild>
             <button
               onClick={toggleExtractingMode}
+              disabled={isExtracting}
               className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center active:scale-90 border border-white/20 ${isExtractingMode
                 ? 'bg-blue-600 hover:bg-blue-700 text-white'
                 : 'bg-white/90 dark:bg-black/90 text-blue-600 dark:text-blue-400'
-                }`}
+                } ${isExtracting ? 'animate-pulse' : ''}`}
             >
-              <Globe size={22} strokeWidth={3} />
+              <Globe size={22} className={isExtracting ? 'animate-spin' : ''} strokeWidth={3} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
