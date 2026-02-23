@@ -16,6 +16,7 @@ import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import ModalPin from './ModalPin';
 import SearchModal from '@/components/features/search/SearchModal';
 import Profile from '@/components/features/profile/Profile';
+import CircleButton from '@/buttons/CircleButton';
 
 export default function Mapa({
   lugares,
@@ -589,7 +590,6 @@ OBJETO: ${main.osm_id} (${main.type})
       >
         <MapControls
           position="bottom-right"
-          showZoom
           showCompass
           showLocate
           onLocate={(coords) => setUserLocation(coords)}
@@ -760,12 +760,12 @@ OBJETO: ${main.osm_id} (${main.type})
         {/* Botón Buscar */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <CircleButton
               onClick={() => setIsSearchOpen(true)}
-              className="w-12 h-12 bg-white/90 dark:bg-black/90 backdrop-blur-md hover:bg-gray-100 dark:hover:bg-white/10 text-slate-900 dark:text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-90 border border-white/20"
+              style={{ width: '3.5rem', height: '3.5rem' }}
             >
-              <Search size={22} strokeWidth={3} />
-            </button>
+              <Search size={20} strokeWidth={2.5} className="text-zinc-700 dark:text-white" />
+            </CircleButton>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
             <p>Buscar lugares (Ctrl+K)</p>
@@ -775,16 +775,21 @@ OBJETO: ${main.osm_id} (${main.type})
         {/* Botón de Extracción de Datos (PRUEBAS) */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <CircleButton
               onClick={toggleExtractingMode}
               disabled={isExtracting}
-              className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center active:scale-90 border border-white/20 ${isExtractingMode
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-white/90 dark:bg-black/90 text-blue-600 dark:text-blue-400'
-                } ${isExtracting ? 'animate-pulse' : ''}`}
+              style={{ 
+                width: '3.5rem', 
+                height: '3.5rem',
+                border: isExtractingMode ? '2px solid #3b82f6' : undefined
+              }}
             >
-              <Globe size={22} className={isExtracting ? 'animate-spin' : ''} strokeWidth={3} />
-            </button>
+              <Globe 
+                size={20} 
+                className={`${isExtracting ? 'animate-spin' : ''} ${isExtractingMode ? 'text-blue-500' : 'text-zinc-700 dark:text-white'}`} 
+                strokeWidth={2.5} 
+              />
+            </CircleButton>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
             <p>{isExtractingMode ? 'Cancelar Extracción' : 'Pruebas: Extraer Datos'}</p>
@@ -794,15 +799,20 @@ OBJETO: ${main.osm_id} (${main.type})
         {/* Botón flotante para agregar puntos de interés */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <CircleButton
               onClick={toggleAddingMode}
-              className={`w-12 h-12 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center active:scale-90 border border-white/20 ${isAddingPoint
-                ? 'bg-red-500/90 hover:bg-red-600/90 text-white'
-                : 'bg-green-500/90 hover:bg-green-600/90 text-white'
-                }`}
+              style={{ 
+                width: '3.5rem', 
+                height: '3.5rem',
+                border: isAddingPoint ? '2px solid #ef4444' : undefined
+              }}
             >
-              {isAddingPoint ? <X size={22} strokeWidth={3} /> : <Plus size={22} strokeWidth={3} />}
-            </button>
+              {isAddingPoint ? (
+                <X size={20} strokeWidth={2.5} className="text-red-500" />
+              ) : (
+                <Plus size={20} strokeWidth={2.5} className="text-green-600 dark:text-green-400" />
+              )}
+            </CircleButton>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
             <p>{isAddingPoint ? 'Cancelar' : 'Agregar Punto'}</p>

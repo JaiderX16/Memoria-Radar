@@ -14,6 +14,7 @@ import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, Navigation } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "@/utils/cn";
+import CircleButton from "@/buttons/CircleButton";
 
 // --- Tooltip Components ---
 
@@ -674,7 +675,7 @@ const positionClasses = {
 
 function ControlGroup({ children }) {
     return (
-        <div className="flex flex-col rounded-md border border-zinc-800 bg-zinc-900 shadow-sm overflow-hidden [&>button:not(:last-child)]:border-b [&>button:not(:last-child)]:border-zinc-800">
+        <div className="flex flex-col gap-3 items-center">
             {children}
         </div>
     );
@@ -685,26 +686,23 @@ function ControlButton({
     label,
     children,
     disabled = false,
+    className,
 }) {
     return (
-        <button
+        <CircleButton
             onClick={onClick}
-            aria-label={label}
-            type="button"
-            className={cn(
-                "flex items-center justify-center size-8 text-white hover:bg-zinc-800 transition-colors",
-                disabled && "opacity-50 pointer-events-none cursor-not-allowed"
-            )}
             disabled={disabled}
+            className={className}
+            style={{ width: '2.5rem', height: '2.5rem' }}
         >
             {children}
-        </button>
+        </CircleButton>
     );
 }
 
 function MapControls({
     position = "bottom-right",
-    showZoom = true,
+    showZoom = false,
     showCompass = false,
     showLocate = false,
     showFullscreen = false,
@@ -888,20 +886,18 @@ function CompassButton({ onClick }) {
     }, [map]);
 
     return (
-        <button
+        <CircleButton
             onClick={onClick}
-            aria-label="Reset bearing"
-            type="button"
-            className="flex items-center justify-center size-8 hover:bg-zinc-800 transition-colors"
+            style={{ width: '2.5rem', height: '2.5rem' }}
         >
             <div
                 ref={compassRef}
                 className="transition-transform duration-100 ease-out flex items-center justify-center w-full h-full"
                 style={{ transformOrigin: "center" }}
             >
-                <Navigation className="size-5 fill-red-500 text-zinc-800" />
+                <Navigation className="size-4 fill-red-500 text-red-500/80" />
             </div>
-        </button>
+        </CircleButton>
     );
 }
 

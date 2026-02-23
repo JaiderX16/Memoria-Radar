@@ -26,7 +26,7 @@ function App() {
     const [user, setUser] = useState(null); // { name, email, avatar, role }
     const [showTools, setShowTools] = useState(true); // Controla la visibilidad del selector de roles
     const [mapTheme, setMapTheme] = useState('standard'); // 'standard' | 'satellite' | 'hybrid'
-    const [starrySky, setStarrySky] = useState(false); // Toggle para cielo estrellado
+    const [starrySky, setStarrySky] = useState(true); // Toggle para cielo estrellado
     const [darkMode, setDarkMode] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('theme');
