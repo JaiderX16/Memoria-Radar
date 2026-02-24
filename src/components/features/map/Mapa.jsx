@@ -778,16 +778,16 @@ OBJETO: ${main.osm_id} (${main.type})
             <CircleButton
               onClick={toggleExtractingMode}
               disabled={isExtracting}
-              style={{ 
-                width: '3.5rem', 
+              style={{
+                width: '3.5rem',
                 height: '3.5rem',
                 border: isExtractingMode ? '2px solid #3b82f6' : undefined
               }}
             >
-              <Globe 
-                size={20} 
-                className={`${isExtracting ? 'animate-spin' : ''} ${isExtractingMode ? 'text-blue-500' : 'text-zinc-700 dark:text-white'}`} 
-                strokeWidth={2.5} 
+              <Globe
+                size={20}
+                className={`${isExtracting ? 'animate-spin' : ''} ${isExtractingMode ? 'text-blue-500' : 'text-zinc-700 dark:text-white'}`}
+                strokeWidth={2.5}
               />
             </CircleButton>
           </TooltipTrigger>
@@ -801,8 +801,8 @@ OBJETO: ${main.osm_id} (${main.type})
           <TooltipTrigger asChild>
             <CircleButton
               onClick={toggleAddingMode}
-              style={{ 
-                width: '3.5rem', 
+              style={{
+                width: '3.5rem',
                 height: '3.5rem',
                 border: isAddingPoint ? '2px solid #ef4444' : undefined
               }}

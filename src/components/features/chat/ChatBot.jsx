@@ -12,26 +12,10 @@ import {
 } from 'lucide-react';
 import ChatBotMobile from './ChatBotMobile';
 
-const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState }) => {
-    const [isMobile, setIsMobile] = useState(false);
-
-    // Detectar móvil
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(max-width: 768px)');
-        setIsMobile(mediaQuery.matches);
-
-        const handler = (e) => setIsMobile(e.matches);
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
-
-    // Si es móvil, usar el componente MiaMobile
-    if (isMobile) {
-        return <ChatBotMobile isOpen={isOpen} setIsOpen={setIsOpen} chatState={chatState} setChatState={setChatState} />;
-    }
-
-    // Componente Desktop
-    return <ChatBotDesktop isOpen={isOpen} setIsOpen={setIsOpen} />;
+const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState, ...props }) => {
+    console.log('DEBUG: ChatBot Render', { isOpen, chatState });
+    // Siempre usar el componente con vaul Drawer
+    return <ChatBotMobile isOpen={isOpen} setIsOpen={setIsOpen} chatState={chatState} setChatState={setChatState} {...props} />;
 };
 
 const ChatBotDesktop = ({ isOpen, setIsOpen }) => {
