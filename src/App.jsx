@@ -120,8 +120,8 @@ function App() {
         const fetchData = async () => {
             try {
                 const [placesData, eventsData] = await Promise.all([
-                    getPlaces(Object.fromEntries(params)),
-                    getEvents(Object.fromEntries(params))
+                    getPlaces(Object.fromEntries(params), { signal: controller.signal }),
+                    getEvents(Object.fromEntries(params), { signal: controller.signal })
                 ]);
 
                 // Ajustar respuesta según estructura del backend si es necesario
@@ -231,6 +231,7 @@ function App() {
 
     // Handler para abrir/cerrar el chatbot
     const handleToggleChat = () => {
+        console.log('DEBUG [App]: handleToggleChat - current state:', { chatState, isChatOpen });
         if (chatState === 'closed') {
             setIsChatOpen(true);
             setChatState('half');
@@ -266,7 +267,7 @@ function App() {
             />
 
             {/* Top Bar Container */}
-            <div className="fixed top-6 left-0 right-0 px-6 z-[10000] flex justify-between items-center pointer-events-none">
+            <div className="fixed top-6 left-0 right-0 px-6 z-[10] flex justify-between items-center pointer-events-none">
                 {/* Left: Menu Button Container */}
                 <div className="w-[52px] pointer-events-auto">
                     {!isSidebarOpen && (

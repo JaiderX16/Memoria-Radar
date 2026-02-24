@@ -13,7 +13,6 @@ import {
 import ChatBotMobile from './ChatBotMobile';
 
 const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState, ...props }) => {
-    console.log('DEBUG: ChatBot Render', { isOpen, chatState });
     // Siempre usar el componente con vaul Drawer
     return <ChatBotMobile isOpen={isOpen} setIsOpen={setIsOpen} chatState={chatState} setChatState={setChatState} {...props} />;
 };

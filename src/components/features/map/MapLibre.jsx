@@ -95,35 +95,34 @@ function useResolvedTheme(themeProp) {
     );
 
     useEffect(() => {
-        if (themeProp) return; // Skip detection if theme is provided via prop
+        if (themeProp) return;
 
-        // Watch for document class changes (e.g., next-themes toggling dark class)
         const observer = new MutationObserver(() => {
             const docTheme = getDocumentTheme();
-            if (docTheme) {
+            if (docTheme && docTheme !== detectedTheme) {
                 setDetectedTheme(docTheme);
             }
         });
+
         observer.observe(document.documentElement, {
             attributes: true,
             attributeFilter: ["class"],
         });
 
-        // Also watch for system preference changes
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
         const handleSystemChange = (e) => {
-            // Only use system preference if no document class is set
             if (!getDocumentTheme()) {
                 setDetectedTheme(e.matches ? "dark" : "light");
             }
         };
+
         mediaQuery.addEventListener("change", handleSystemChange);
 
         return () => {
             observer.disconnect();
             mediaQuery.removeEventListener("change", handleSystemChange);
         };
-    }, [themeProp]);
+    }, [themeProp, detectedTheme]);
 
     return themeProp ?? detectedTheme;
 }

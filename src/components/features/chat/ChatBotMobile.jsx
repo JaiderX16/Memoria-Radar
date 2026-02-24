@@ -10,7 +10,7 @@ import {
     Mic
 } from 'lucide-react';
 
-const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
+const ChatBotMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     // Estados principales
     const [messages, setMessages] = useState([
         {
@@ -100,87 +100,82 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    // Sincronizar chatState con isOpen
+    // 1. Sync isOpen based on external chatState (Parent -> Child)
     useEffect(() => {
-        if (chatState === 'closed') {
-            setIsOpen(false);
-        } else {
+        if (chatState !== 'closed' && !isOpen) {
             setIsOpen(true);
+        } else if (chatState === 'closed' && isOpen) {
+            setIsOpen(false);
         }
-    }, [chatState, setIsOpen]);
+    }, [chatState]);
 
-    // Update chatState based on open state changes from Drawer
+    // 2. Handle drawer closure (Child -> Parent)
     const handleOpenChange = (open) => {
         setIsOpen(open);
         if (!open) {
             setChatState('closed');
-        } else {
-            // Default to half when opening if currently closed
-            if (chatState === 'closed') {
-                setChatState('half');
-                setSnap(0.45);
-            }
         }
     };
 
     const [snap, setSnap] = useState(0.45);
 
-    // Sync snap state with chatState (Two-way binding)
+    // 3. Optional: Sync snap from chatState if forced from parent
     useEffect(() => {
-        if (chatState === 'full' && snap !== 1) {
-            setSnap(1);
-        } else if (chatState === 'half' && snap !== 0.45) {
-            setSnap(0.45);
-        }
+        if (chatState === 'full' && snap !== 1) setSnap(1);
+        if (chatState === 'half' && snap !== 0.45) setSnap(0.45);
     }, [chatState]);
 
-    // Update chatState when snap changes
-    useEffect(() => {
-        if (snap === 1) {
-            setChatState('full');
-        } else if (typeof snap === 'number' && snap < 0.6) {
-            setChatState('half');
+    // 4. Report snap changes back to parent
+    const onSnapChange = (s) => {
+        setSnap(s);
+        if (s === 1) setChatState('full');
+        else if (s === 0.45) setChatState('half');
+        else if (s === 0) {
+            setChatState('closed');
+            setIsOpen(false);
         }
-    }, [snap, setChatState]);
-
-    console.log('DEBUG: MiaMobile Render - isOpen:', isOpen);
+    };
 
     return (
         <Drawer.Root
             open={isOpen}
             onOpenChange={handleOpenChange}
+            snapPoints={[0.45, 1]}
+            activeSnapPoint={snap}
+            setActiveSnapPoint={onSnapChange}
             shouldScaleBackground={false}
+            dismissible={true}
         >
             <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 bg-black/60 z-[9999]" />
+                <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[100000]" />
                 <Drawer.Content
-                    className="bg-red-500 dark:bg-red-900 border-2 border-yellow-400 flex flex-col rounded-t-[32px] fixed z-[10000] outline-none h-[50vh] max-w-lg mx-auto left-0 right-0 bottom-0"
+                    className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-black/90 backdrop-blur-3xl border-t border-white/30 dark:border-white/5 flex flex-col rounded-t-[32px] z-[100005] outline-none shadow-2xl h-[96dvh]"
                 >
-                    {/* Título requerido por Radix Dialog (accesibilidad) */}
-                    <Drawer.Title className="sr-only">MIA Chat</Drawer.Title>
+                    <Drawer.Title className="sr-only">Chat de MIA</Drawer.Title>
+                    <Drawer.Description className="sr-only">Asistente virtual de turismo en Huancayo</Drawer.Description>
 
                     {/* Handle visual */}
-                    <div className="w-full flex justify-center pt-6 pb-4 flex-shrink-0">
-                        <div className="w-16 h-1.5 rounded-full bg-gray-300/50 dark:bg-white/20" />
+                    <div className="w-full flex justify-center pt-6 pb-4 flex-shrink-0 cursor-grab active:cursor-grabbing">
+                        <div className="w-16 h-1.5 rounded-full bg-black/10 dark:bg-white/20" />
                     </div>
 
                     {/* Messages Area */}
-                    <div className="flex-1 overflow-hidden flex flex-col relative">
+                    <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent min-h-0">
                         <div className="flex-1 overflow-y-auto px-4 space-y-4 scrollbar-hide py-4" onClick={() => setShowEmojiPicker(false)}>
                             <div className={`text-center text-[10px] text-gray-500 dark:text-gray-400 font-bold my-4 uppercase tracking-widest opacity-50`}>HOY</div>
 
                             {messages.map((msg) => {
                                 const isUser = msg.sender === 'user';
                                 return (
-                                    <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
+                                    <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full group`}>
                                         {msg.type === 'text' && (
-                                            <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-2xl rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-2xl rounded-tl-none'}`}>
+                                            <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md transition-all duration-300 ${isUser ? 'bg-black text-white dark:bg-white/10 dark:text-white rounded-2xl rounded-tr-none shadow-sm' : 'bg-white/60 text-black dark:bg-white/5 dark:text-white rounded-2xl rounded-tl-none border border-black/5 dark:border-white/5 shadow-sm'}`}>
                                                 {msg.text}
                                             </div>
                                         )}
                                         {msg.type === 'file' && (
-                                            <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-tr-none' : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-tl-none'}`}>
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : 'bg-white dark:bg-gray-700/50'}`}>
+                                            <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-white/10 dark:text-white rounded-tr-none' : 'bg-white/60 text-black dark:bg-white/5 dark:text-white rounded-tl-none border border-black/5 dark:border-white/5'}`}>
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : 'bg-white shadow-sm dark:bg-white/10'}`}>
                                                     {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={16} />}
                                                 </div>
                                                 <div className="flex flex-col overflow-hidden">
@@ -195,7 +190,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
                             {isTyping && (
                                 <div className="flex items-start">
-                                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-[#E9E9EB] dark:bg-[#262626]`}>
+                                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-white/60 dark:bg-white/5 border border-black/5 dark:border-white/5`}>
                                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
                                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
                                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -207,11 +202,11 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                     </div>
 
                     {/* Input Area */}
-                    <div className="mt-auto bg-inherit flex-shrink-0">
-                        <div className={`p-4 pb-8 bg-transparent border-t border-gray-200/50 dark:border-white/10 transition-all duration-300`}>
+                    <div className="mt-auto bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-black/10 dark:border-white/10 flex-shrink-0 z-50">
+                        <div className="p-4 pb-12 sm:pb-8 transition-all duration-300">
                             {selectedFile && (
                                 <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                                    <div className={`bg-gray-50 border-gray-200 dark:bg-[#1c1c1e]/50 dark:border-white/10 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
+                                    <div className={`bg-white/60 border-black/5 dark:bg-white/5 dark:border-white/5 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
                                         <div className="flex items-center gap-2 overflow-hidden">
                                             <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
                                                 {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
@@ -225,9 +220,9 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
                             {showEmojiPicker && (
                                 <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                                    <div className={`bg-white border-gray-200 dark:bg-[#1c1c1e] dark:border-white/10 border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl`}>
+                                    <div className={`bg-white/80 border-black/5 dark:bg-[#1c1c1e]/80 dark:border-white/5 border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl backdrop-blur-xl`}>
                                         {emojis.map(emoji => (
-                                            <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-white/5 rounded-lg transition-colors">{emoji}</button>
+                                            <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors">{emoji}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -235,7 +230,7 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
 
                             <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                                 <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) setSelectedFile(e.target.files[0]); }} />
-                                <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
+                                <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
 
                                 <div className="flex-1 relative">
                                     <input
@@ -243,16 +238,16 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         placeholder="Escribe un mensaje..."
-                                        className={`w-full bg-gray-100 border-transparent text-gray-900 dark:bg-[#1c1c1e]/50 dark:border-white/10 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all backdrop-blur-md`}
+                                        className={`w-full bg-black/5 border-transparent text-gray-900 dark:bg-white/5 dark:border-white/5 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-2.5 text-[15px] focus:outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition-all backdrop-blur-md`}
                                     />
-                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
+                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
                                 </div>
 
                                 <button
                                     type="submit"
-                                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-white text-black scale-105 shadow-lg' : 'bg-[#1c1c1e]/50 text-gray-500'}`}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-black text-white dark:bg-white dark:text-black scale-105 shadow-md' : 'bg-black/5 text-gray-400 dark:bg-white/5'}`}
                                 >
-                                    {inputValue.trim() || selectedFile ? <ArrowUp size={22} strokeWidth={2.5} /> : <Mic size={22} strokeWidth={2} />}
+                                    {inputValue.trim() || selectedFile ? <ArrowUp size={20} strokeWidth={2.5} /> : <Mic size={20} strokeWidth={2} />}
                                 </button>
                             </form>
                         </div>
@@ -263,4 +258,4 @@ const MiaMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
     );
 };
 
-export default MiaMobile;
+export default ChatBotMobile;
