@@ -54,8 +54,9 @@ export default function Mapa({
   const [tempPoint, setTempPoint] = useState(null);
   const [showPointForm, setShowPointForm] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 });
+  const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 }); // Manteniendo para state inicial pero actualizando ref para fluidez
   const [routeData, setRouteData] = useState(null);
+  const modalPinRef = useRef(null);
   const [isRouting, setIsRouting] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false); // Nuevo estado de carga
@@ -410,6 +411,9 @@ OBJETO: ${main.osm_id} (${main.type})
 
       const coords = map.project([lng, lat]);
       setModalPosition({ x: coords.x, y: coords.y });
+      if (modalPinRef.current) {
+        modalPinRef.current.style.transform = `translate3d(${coords.x}px, ${coords.y}px, 0) translateX(-50%) translateY(-100%) translateY(-25px)`;
+      }
 
       // Animación suave y fluida usando flyTo
       map.flyTo({
@@ -494,27 +498,33 @@ OBJETO: ${main.osm_id} (${main.type})
       const lng = selectedLocation.longitud || selectedLocation.lng;
       const lat = selectedLocation.latitud || selectedLocation.lat;
       const coords = map.project([lng, lat]);
-      setModalPosition({ x: coords.x, y: coords.y });
+
+      if (modalPinRef.current) {
+        // Actualizar directamente el DOM evitando el ciclo de renderizado de React para no tener lag
+        modalPinRef.current.style.transform = `translate3d(${coords.x}px, ${coords.y}px, 0) translateX(-50%) translateY(-100%) translateY(-25px)`;
+      } else {
+        // Fallback en caso de que el ref no esté montado aún
+        setModalPosition({ x: coords.x, y: coords.y });
+      }
       isUpdatePending = false;
     };
 
     const scheduleUpdate = () => {
+      // Mapbox dispara 'render' en casi cada frame
       if (!isUpdatePending) {
         isUpdatePending = true;
         rafId = requestAnimationFrame(updateModalPosition);
       }
     };
 
-    // Usar eventos optimizados
-    map.on('move', scheduleUpdate);
-    map.on('zoom', scheduleUpdate);
+    // MapLibre dispara el evento 'render' de forma sincrónica con la pintura del mapa, ideal para anclar overlays
+    map.on('render', scheduleUpdate);
 
     // Posicionar inicialmente
     updateModalPosition();
 
     return () => {
-      map.off('move', scheduleUpdate);
-      map.off('zoom', scheduleUpdate);
+      map.off('render', scheduleUpdate);
       if (rafId) {
         cancelAnimationFrame(rafId);
       }
@@ -885,6 +895,7 @@ OBJETO: ${main.osm_id} (${main.type})
       {/* Modal de detalles del pin */}
       {selectedLocation && (
         <div
+          ref={modalPinRef}
           className="absolute z-30 top-0 left-0 pointer-events-none"
           style={{
             transform: `translate3d(${modalPosition.x}px, ${modalPosition.y}px, 0) translateX(-50%) translateY(-100%) translateY(-25px)`,
