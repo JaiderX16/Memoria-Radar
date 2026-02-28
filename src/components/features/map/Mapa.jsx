@@ -201,46 +201,56 @@ export default function Mapa({
         setShowPointForm(true);
 
         try {
-          // Reverse Geocoding usando Nominatim (OpenStreetMap)
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+          // Usamos la misma lógica robusta multi-nivel del extractor
+          const fetchParams = {
             headers: {
               'Accept-Language': 'es',
-              'User-Agent': 'MemoriaRadar/1.0 (contact@memoriaradar.com)'
+              'User-Agent': 'MemoriaRadar/2.0 (Point-Extractor)'
             }
+          };
+
+          const [data1, data2, data3, data4] = await Promise.all([
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=5&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=3&addressdetails=1`, fetchParams).then(r => r.ok ? r.json() : null).catch(() => null)
+          ]);
+
+          const main = data1 || data2 || data3 || data4;
+          if (!main) throw new Error('No se pudo obtener información de ubicación');
+
+          const addr = main.address || {};
+
+          // Mapeo detallado
+          const paisNombre = addr.country || data4?.address?.country || data3?.address?.country || '';
+          const countryCode = (addr.country_code || data4?.address?.country_code || '').toUpperCase();
+          const regionNombre = addr.state || addr.province || addr.region || data3?.address?.state || '';
+          const ciudadNombre = addr.city || addr.town || addr.village || addr.municipality || data2?.address?.city || '';
+
+          const continentMap = {
+            'PE': 'América del Sur', 'CO': 'América del Sur', 'AR': 'América del Sur', 'CL': 'América del Sur',
+            'MX': 'América del Norte', 'US': 'América del Norte', 'CA': 'América del Norte', 'ES': 'Europa'
+          };
+          const continente = addr.continent || data4?.address?.continent || continentMap[countryCode] || 'América';
+
+          const road = addr.road || '';
+          const houseNumber = addr.house_number || '';
+          const displayName = main.display_name || '';
+
+          setTempPoint({
+            longitud: lng,
+            latitud: lat,
+            nombre: main.name || road || ciudadNombre || 'Nuevo Lugar',
+            direccion_completa: displayName,
+            direccion: road + (houseNumber ? ` ${houseNumber}` : ''),
+            continente_nombre: continente,
+            pais_nombre: paisNombre,
+            region_nombre: regionNombre,
+            ciudad_nombre: ciudadNombre,
+            tipo: addr.amenity || addr.shop || addr.tourism || addr.historic || null
           });
-          const data = await response.json();
-
-          if (data) {
-            const addr = data.address || {};
-
-            // 4 Puntos Clave: Continente, País, Región, Ciudad
-            // Nominatim no siempre da continente, intentamos inferir o usar el que dé
-            const continente = addr.continent || (['pe', 'co', 'ar', 'cl', 'mx', 'us', 'br'].includes(addr.country_code) ? 'América' : '');
-            const pais = addr.country || '';
-            const region = addr.state || addr.region || addr.province || '';
-            // Ciudad: priorizar city, luego town, luego village. Ignorar suburb/district para este campo específico.
-            const ciudad = addr.city || addr.town || addr.village || addr.municipality || '';
-
-            const road = addr.road || '';
-            const houseNumber = addr.house_number || '';
-            const displayName = data.display_name || '';
-
-            setTempPoint({
-              longitud: lng,
-              latitud: lat,
-              nombre: data.name || road || ciudad || 'Nuevo Lugar',
-              direccion_completa: displayName,
-              direccion: road + (houseNumber ? ` ${houseNumber}` : ''),
-              continente_nombre: continente,
-              pais_nombre: pais,
-              region_nombre: region,
-              ciudad_nombre: ciudad,
-              // Mantener compatibilidad si se usa en otros lados
-              tipo: addr.amenity || addr.shop || addr.tourism || addr.historic || null
-            });
-          }
         } catch (error) {
-          console.error('Error in reverse geocoding:', error);
+          console.error('Error in robust reverse geocoding:', error);
           setTempPoint({ longitud: lng, latitud: lat, nombre: '' });
         }
       } else if (isExtractingMode && !isExtracting) {

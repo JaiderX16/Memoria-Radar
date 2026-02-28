@@ -29,7 +29,11 @@ const INITIAL_FORM_STATE = {
     video_link: '',
     notificaciones: false,
     tiempo_aviso: 60, // minutos
-    tags: []
+    tags: [],
+    continente_nombre: '',
+    pais_nombre: '',
+    region_nombre: '',
+    ciudad_nombre: ''
 };
 
 // Estilos Premium
@@ -56,7 +60,11 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
             setFormData(prev => ({
                 ...prev,
                 latitud: initialCoords.lat,
-                longitud: initialCoords.lng
+                longitud: initialCoords.lng,
+                continente_nombre: initialCoords.continente_nombre || prev.continente_nombre,
+                pais_nombre: initialCoords.pais_nombre || prev.pais_nombre,
+                region_nombre: initialCoords.region_nombre || prev.region_nombre,
+                ciudad_nombre: initialCoords.ciudad_nombre || prev.ciudad_nombre
             }));
         } else {
             setFormData(INITIAL_FORM_STATE);
@@ -152,6 +160,29 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>Longitud</label>
                     <input type="number" name="longitud" value={formData.longitud} onChange={handleChange} className={INPUT_CLASSES} step="any" required />
+                </div>
+            </div>
+
+            {/* Ubicación Detallada */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className={LABEL_CLASSES}>Continente</label>
+                    <input type="text" name="continente_nombre" value={formData.continente_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: América del Sur" />
+                </div>
+                <div className="space-y-2">
+                    <label className={LABEL_CLASSES}>País</label>
+                    <input type="text" name="pais_nombre" value={formData.pais_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Perú" />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className={LABEL_CLASSES}>Región / Estado</label>
+                    <input type="text" name="region_nombre" value={formData.region_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Junín" />
+                </div>
+                <div className="space-y-2">
+                    <label className={LABEL_CLASSES}>Ciudad</label>
+                    <input type="text" name="ciudad_nombre" value={formData.ciudad_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Huancayo" />
                 </div>
             </div>
 
