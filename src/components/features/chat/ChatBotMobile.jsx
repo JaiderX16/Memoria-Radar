@@ -10,21 +10,22 @@ import {
     Mic
 } from 'lucide-react';
 
-const ChatBotMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
-    // Estados principales
-    const [messages, setMessages] = useState([
-        {
-            id: 1,
-            text: '¡Hola! Soy MIA, tu asistente de turismo en Huancayo. ¿En qué puedo ayudarte hoy?',
-            sender: 'bot',
-            type: 'text',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-    ]);
-    const [inputValue, setInputValue] = useState('');
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [isTyping, setIsTyping] = useState(false);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+const ChatBotMobile = ({
+    isOpen,
+    setIsOpen,
+    chatState,
+    setChatState,
+    messages,
+    setMessages,
+    inputValue,
+    setInputValue,
+    selectedFile,
+    setSelectedFile,
+    isTyping,
+    setIsTyping,
+    showEmojiPicker,
+    setShowEmojiPicker
+}) => {
     const [isRecording, setIsRecording] = useState(false);
 
     const messagesEndRef = useRef(null);

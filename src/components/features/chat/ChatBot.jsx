@@ -13,12 +13,9 @@ import {
 import ChatBotMobile from './ChatBotMobile';
 
 const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState, ...props }) => {
-    // Siempre usar el componente con vaul Drawer
-    return <ChatBotMobile isOpen={isOpen} setIsOpen={setIsOpen} chatState={chatState} setChatState={setChatState} {...props} />;
-};
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
-const ChatBotDesktop = ({ isOpen, setIsOpen }) => {
-    // Estados principales
+    // Estados centralizados para persistencia entre vistas
     const [messages, setMessages] = useState([
         {
             id: 1,
@@ -33,6 +30,52 @@ const ChatBotDesktop = ({ isOpen, setIsOpen }) => {
     const [isTyping, setIsTyping] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+    useEffect(() => {
+        setIsMobile(window.innerWidth < 768);
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const chatProps = {
+        isOpen,
+        setIsOpen,
+        chatState,
+        setChatState,
+        messages,
+        setMessages,
+        inputValue,
+        setInputValue,
+        selectedFile,
+        setSelectedFile,
+        isTyping,
+        setIsTyping,
+        showEmojiPicker,
+        setShowEmojiPicker,
+        ...props
+    };
+
+    if (isMobile) {
+        return <ChatBotMobile {...chatProps} />;
+    }
+
+    return <ChatBotDesktop {...chatProps} />;
+};
+
+const ChatBotDesktop = ({
+    isOpen,
+    setIsOpen,
+    messages,
+    setMessages,
+    inputValue,
+    setInputValue,
+    selectedFile,
+    setSelectedFile,
+    isTyping,
+    setIsTyping,
+    showEmojiPicker,
+    setShowEmojiPicker
+}) => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
@@ -106,7 +149,7 @@ const ChatBotDesktop = ({ isOpen, setIsOpen }) => {
     };
 
     return (
-        <div className={`fixed bottom-4 right-16 w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+        <div className={`fixed bottom-4 right-16 w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
             {/* Header */}
             <div className={`bg-transparent p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
                 <div className="flex items-center gap-3">
