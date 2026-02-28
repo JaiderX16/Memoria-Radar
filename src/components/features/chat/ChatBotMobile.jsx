@@ -117,19 +117,19 @@ const ChatBotMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         }
     };
 
-    const [snap, setSnap] = useState(0.45);
+    const [snap, setSnap] = useState(0.5);
 
     // 3. Optional: Sync snap from chatState if forced from parent
     useEffect(() => {
         if (chatState === 'full' && snap !== 1) setSnap(1);
-        if (chatState === 'half' && snap !== 0.45) setSnap(0.45);
+        if (chatState === 'half' && snap !== 0.5) setSnap(0.5);
     }, [chatState]);
 
     // 4. Report snap changes back to parent
     const onSnapChange = (s) => {
         setSnap(s);
         if (s === 1) setChatState('full');
-        else if (s === 0.45) setChatState('half');
+        else if (s === 0.5) setChatState('half');
         else if (s === 0) {
             setChatState('closed');
             setIsOpen(false);
@@ -140,28 +140,34 @@ const ChatBotMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
         <Drawer.Root
             open={isOpen}
             onOpenChange={handleOpenChange}
-            snapPoints={[0.45, 1]}
+            snapPoints={[0.5, 1]}
             activeSnapPoint={snap}
             setActiveSnapPoint={onSnapChange}
-            shouldScaleBackground={false}
+            shouldScaleBackground={false} // Desactivado para no achicar el mapa y poder usarlo
             dismissible={true}
+            fadeFromIndex={0}
+            modal={false} // Permite usar el mapa interactivo detrás
         >
             <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 bg-black/40 z-[100000]" />
+                {/* Vaul exige Drawer.Content con medidas fijas para calcular el drag. Lo hacemos alto pero transparente a clics */}
                 <Drawer.Content
-                    className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-black/90 backdrop-blur-3xl border-t border-white/30 dark:border-white/5 flex flex-col rounded-t-[32px] z-[100005] outline-none shadow-2xl h-[96dvh]"
+                    className="fixed bottom-0 left-0 right-0 flex flex-col justify-start outline-none pointer-events-none z-[100005]"
+                    style={{ height: '96vh' }}
                 >
-                    <Drawer.Title className="sr-only">Chat de MIA</Drawer.Title>
-                    <Drawer.Description className="sr-only">Asistente virtual de turismo en Huancayo</Drawer.Description>
+                    {/* Contenedor visual dinámico que sí captura clics. Usamos alturas fijas en VH puro para evitar bugs de teclado en iOS */}
+                    <div className="w-full flex-col flex bg-white/80 dark:bg-black/60 backdrop-blur-3xl border-t border-white/40 dark:border-white/10 rounded-t-[32px] overflow-hidden shadow-[0_-8px_40px_rgba(0,0,0,0.12)] pointer-events-auto"
+                        style={{ height: snap === 1 ? '96vh' : '48vh', transition: 'height 0.4s cubic-bezier(0.32, 0.72, 0, 1)' }}
+                    >
+                        <Drawer.Title className="sr-only">Chat de MIA</Drawer.Title>
+                        <Drawer.Description className="sr-only">Asistente virtual de turismo en Huancayo</Drawer.Description>
 
-                    {/* Handle visual */}
-                    <div className="w-full flex justify-center pt-6 pb-4 flex-shrink-0 cursor-grab active:cursor-grabbing">
-                        <div className="w-16 h-1.5 rounded-full bg-black/10 dark:bg-white/20" />
-                    </div>
+                        {/* Handle visual */}
+                        <div className="w-full flex justify-center pt-5 pb-3 flex-shrink-0 cursor-grab active:cursor-grabbing bg-transparent relative z-10">
+                            <div className="w-12 h-1.5 rounded-full bg-black/20 dark:bg-white/30 backdrop-blur-sm" />
+                        </div>
 
-                    {/* Messages Area */}
-                    <div className="flex-1 overflow-hidden flex flex-col relative bg-transparent min-h-0">
-                        <div className="flex-1 overflow-y-auto px-4 space-y-4 scrollbar-hide py-4" onClick={() => setShowEmojiPicker(false)}>
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-hide flex flex-col pt-2 w-full" onClick={() => setShowEmojiPicker(false)}>
                             <div className={`text-center text-[10px] text-gray-500 dark:text-gray-400 font-bold my-4 uppercase tracking-widest opacity-50`}>HOY</div>
 
                             {messages.map((msg) => {
@@ -189,72 +195,75 @@ const ChatBotMobile = ({ isOpen, setIsOpen, chatState, setChatState }) => {
                             })}
 
                             {isTyping && (
-                                <div className="flex items-start">
-                                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-white/60 dark:bg-white/5 border border-black/5 dark:border-white/5`}>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
+                                <div className="flex items-start mt-4">
+                                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 shadow-sm`}>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:0.2s]"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:0.4s]"></span>
                                     </div>
                                 </div>
                             )}
-                            <div ref={messagesEndRef} />
+                            <div ref={messagesEndRef} className="h-4" />
                         </div>
-                    </div>
 
-                    {/* Input Area */}
-                    <div className="mt-auto bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-black/10 dark:border-white/10 flex-shrink-0 z-50">
-                        <div className="p-4 pb-12 sm:pb-8 transition-all duration-300">
-                            {selectedFile && (
-                                <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                                    <div className={`bg-white/60 border-black/5 dark:bg-white/5 dark:border-white/5 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
-                                        <div className="flex items-center gap-2 overflow-hidden">
-                                            <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
-                                                {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
+                        {/* Input Area */}
+                        <div className="mt-auto bg-transparent flex-shrink-0 z-50">
+                            <div className="p-4 pb-6 transition-all duration-300 relative">
+                                {/* Gradiente difuminado sobre el input para suavizar la transición del scroll */}
+                                <div className="absolute -top-10 left-0 right-0 h-10 bg-gradient-to-b from-transparent to-white/80 dark:to-black/60 pointer-events-none" />
+
+                                {selectedFile && (
+                                    <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
+                                        <div className={`bg-white/60 border-black/5 dark:bg-white/5 dark:border-white/5 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
+                                                    {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
+                                                </div>
+                                                <span className={`text-xs font-medium truncate text-gray-900 dark:text-white`}>{selectedFile.name}</span>
                                             </div>
-                                            <span className={`text-xs font-medium truncate text-gray-900 dark:text-white`}>{selectedFile.name}</span>
+                                            <button onClick={removeSelectedFile} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                                         </div>
-                                        <button onClick={removeSelectedFile} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {showEmojiPicker && (
-                                <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                                    <div className={`bg-white/80 border-black/5 dark:bg-[#1c1c1e]/80 dark:border-white/5 border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl backdrop-blur-xl`}>
-                                        {emojis.map(emoji => (
-                                            <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors">{emoji}</button>
-                                        ))}
+                                {showEmojiPicker && (
+                                    <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
+                                        <div className={`bg-white/80 border-black/5 dark:bg-[#1c1c1e]/80 dark:border-white/5 border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl backdrop-blur-xl`}>
+                                            {emojis.map(emoji => (
+                                                <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors">{emoji}</button>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                                <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) setSelectedFile(e.target.files[0]); }} />
-                                <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
+                                <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) setSelectedFile(e.target.files[0]); }} />
+                                    <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-black dark:hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
 
-                                <div className="flex-1 relative">
-                                    <input
-                                        type="text"
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                        placeholder="Escribe un mensaje..."
-                                        className={`w-full bg-black/5 border-transparent text-gray-900 dark:bg-white/5 dark:border-white/5 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-2.5 text-[15px] focus:outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition-all backdrop-blur-md`}
-                                    />
-                                    <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
-                                </div>
+                                    <div className="flex-1 relative">
+                                        <input
+                                            type="text"
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            placeholder="Escribe un mensaje..."
+                                            className={`w-full bg-white/50 dark:bg-white/10 border-transparent text-gray-900 dark:text-white dark:placeholder-gray-400 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition-all backdrop-blur-md shadow-inner`}
+                                        />
+                                        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-500 dark:text-gray-400'}`}><Smile size={20} /></button>
+                                    </div>
 
-                                <button
-                                    type="submit"
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-black text-white dark:bg-white dark:text-black scale-105 shadow-md' : 'bg-black/5 text-gray-400 dark:bg-white/5'}`}
-                                >
-                                    {inputValue.trim() || selectedFile ? <ArrowUp size={20} strokeWidth={2.5} /> : <Mic size={20} strokeWidth={2} />}
-                                </button>
-                            </form>
+                                    <button
+                                        type="submit"
+                                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-black text-white dark:bg-white dark:text-black scale-[1.02] shadow-lg' : 'bg-black/5 text-gray-500 dark:bg-white/10 dark:text-gray-400'}`}
+                                    >
+                                        {inputValue.trim() || selectedFile ? <ArrowUp size={20} strokeWidth={2.5} /> : <Mic size={20} strokeWidth={2} />}
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </Drawer.Content>
             </Drawer.Portal>
-        </Drawer.Root>
+        </Drawer.Root >
     );
 };
 

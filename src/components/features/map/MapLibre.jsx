@@ -14,7 +14,7 @@ import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, Navigation } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "@/utils/cn";
-import CircleButton from "@/buttons/CircleButton";
+import { LiquidActionButton } from '@/components/LiquidGlass';
 
 // --- Tooltip Components ---
 
@@ -253,6 +253,7 @@ const Map = forwardRef(function Map(
             container: containerRef.current,
             style: initialStyle,
             renderWorldCopies: false,
+            preserveDrawingBuffer: true,
             attributionControl: {
                 compact: true,
             },
@@ -672,10 +673,12 @@ const positionClasses = {
     "bottom-right": "bottom-5 right-4",
 };
 
-function ControlGroup({ children }) {
+function ControlGroup({ children, domCanvas, pageRef, isDarkMode }) {
     return (
         <div className="flex flex-col gap-3 items-center">
-            {children}
+            {React.Children.map(children, child =>
+                React.isValidElement(child) ? React.cloneElement(child, { domCanvas, pageRef, isDarkMode }) : child
+            )}
         </div>
     );
 }
@@ -686,16 +689,20 @@ function ControlButton({
     children,
     disabled = false,
     className,
+    domCanvas,
+    pageRef,
+    isDarkMode
 }) {
     return (
-        <CircleButton
+        <LiquidActionButton
             onClick={onClick}
-            disabled={disabled}
-            className={className}
-            style={{ width: '2.5rem', height: '2.5rem' }}
+            domCanvas={domCanvas}
+            pageRef={pageRef}
+            isDarkMode={isDarkMode}
+            className={cn("w-10 h-10", className, disabled && "opacity-50 cursor-not-allowed")}
         >
             {children}
-        </CircleButton>
+        </LiquidActionButton>
     );
 }
 
@@ -709,6 +716,9 @@ function MapControls({
     onLocate,
     children,
     chatState = 'closed',
+    domCanvas,
+    pageRef,
+    isDarkMode
 }) {
     const { map } = useMap();
     const [waitingForLocation, setWaitingForLocation] = useState(false);
@@ -817,7 +827,7 @@ function MapControls({
             )}
         >
             {showZoom && (
-                <ControlGroup>
+                <ControlGroup domCanvas={domCanvas} pageRef={pageRef} isDarkMode={isDarkMode}>
                     <ControlButton onClick={handleZoomIn} label="Zoom in">
                         <Plus className="size-4" />
                     </ControlButton>
@@ -827,12 +837,12 @@ function MapControls({
                 </ControlGroup>
             )}
             {showCompass && (
-                <ControlGroup>
-                    <CompassButton onClick={handleResetBearing} />
+                <ControlGroup domCanvas={domCanvas} pageRef={pageRef} isDarkMode={isDarkMode}>
+                    <CompassButton onClick={handleResetBearing} domCanvas={domCanvas} pageRef={pageRef} isDarkMode={isDarkMode} />
                 </ControlGroup>
             )}
             {showLocate && (
-                <ControlGroup>
+                <ControlGroup domCanvas={domCanvas} pageRef={pageRef} isDarkMode={isDarkMode}>
                     <ControlButton
                         onClick={handleLocate}
                         label="Find my location"
@@ -847,18 +857,18 @@ function MapControls({
                 </ControlGroup>
             )}
             {showFullscreen && (
-                <ControlGroup>
-                    <ControlButton onClick={handleFullscreen} label="Toggle fullscreen">
-                        <Maximize className="size-4" />
-                    </ControlButton>
+                <ControlGroup domCanvas={domCanvas} pageRef={pageRef} isDarkMode={isDarkMode}>
+                    <ControlButton onClick={handleFullscreen} label="Toggle fullscreen" />
                 </ControlGroup>
             )}
-            {children}
+            {React.Children.map(children, child =>
+                React.isValidElement(child) ? React.cloneElement(child, { domCanvas, pageRef, isDarkMode }) : child
+            )}
         </div>
     );
 }
 
-function CompassButton({ onClick }) {
+function CompassButton({ onClick, domCanvas, pageRef, isDarkMode }) {
     const { map } = useMap();
     const compassRef = useRef(null);
 
@@ -885,9 +895,12 @@ function CompassButton({ onClick }) {
     }, [map]);
 
     return (
-        <CircleButton
+        <LiquidActionButton
             onClick={onClick}
-            style={{ width: '2.5rem', height: '2.5rem' }}
+            domCanvas={domCanvas}
+            pageRef={pageRef}
+            isDarkMode={isDarkMode}
+            className="w-10 h-10"
         >
             <div
                 ref={compassRef}
@@ -896,7 +909,7 @@ function CompassButton({ onClick }) {
             >
                 <Navigation className="size-4 fill-red-500 text-red-500/80" />
             </div>
-        </CircleButton>
+        </LiquidActionButton>
     );
 }
 

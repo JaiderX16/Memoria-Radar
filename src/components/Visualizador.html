@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Archivos .splat</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #0f172a; /* Slate 900 */
+            color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        #viewer-container { 
+            width: 100vw; 
+            height: 100vh; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            z-index: 1; 
+        }
+        
+        #ui-layer { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 10; 
+            pointer-events: none; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            transition: background-color 0.5s ease;
+        }
+        
+        .pointer-events-auto { pointer-events: auto; }
+        
+        /* Overlay de Arrastrar y Soltar */
+        #drop-overlay {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9); 
+            z-index: 50;
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            border: 4px dashed #3b82f6; 
+            box-sizing: border-box;
+        }
+        
+        #drop-overlay.active { 
+            display: flex; 
+        }
+        
+        /* Animación del spinner */
+        .loader {
+            border-top-color: #3b82f6;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- Import Map para cargar los módulos de Three.js y Gaussian Splats 3D -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+            "@mkkellogg/gaussian-splats-3d": "https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.4.3/build/gaussian-splats-3d.module.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    
+    <!-- Contenedor donde se renderizará el canvas 3D -->
+    <div id="viewer-container" style="opacity: 0; transition: opacity 2.5s ease-out;"></div>
+    
+    <!-- Capa de Interfaz de Usuario -->
+    <div id="ui-layer" class="bg-slate-900">
+        
+        <!-- Panel Inicial para subir archivo -->
+        <div id="start-panel" class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-slate-700 pointer-events-auto transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+            </svg>
+            <h1 class="text-2xl font-bold mb-2 text-white">Visualizador 3D Splatting</h1>
+            <p class="text-slate-400 mb-6 text-sm">Carga un modelo generado con Gaussian Splatting para visualizarlo de forma interactiva en el navegador.</p>
+            
+            <label for="file-upload" class="cursor-pointer inline-flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-6 rounded-xl transition-colors w-full shadow-lg shadow-blue-900/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Seleccionar archivo local
+            </label>
+            <input id="file-upload" type="file" accept=".splat,.ply" class="hidden">
+            
+            <div class="mt-4 flex items-center justify-center gap-2">
+                <hr class="w-full border-slate-700">
+                <span class="text-xs text-slate-400 font-medium uppercase tracking-wider">O</span>
+                <hr class="w-full border-slate-700">
+            </div>
+            
+            <button id="btn-example" class="mt-4 w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-6 rounded-xl transition-colors border border-slate-600 flex justify-center items-center gap-2 shadow-lg shadow-slate-900/50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                </svg>
+                Generar Ejemplo Local (Sin internet)
+            </button>
+            
+            <div class="mt-5 pt-5 border-t border-slate-700 text-xs text-slate-400">
+                Soporta extensiones <b>.splat</b> y <b>.ply</b><br>
+                O arrastra y suelta el archivo en esta ventana
+            </div>
+        </div>
+
+        <!-- Panel de Carga -->
+        <div id="loading-panel" class="hidden bg-slate-800 p-8 rounded-2xl shadow-2xl flex-col items-center pointer-events-auto border border-slate-700">
+            <div class="loader w-14 h-14 border-4 border-slate-600 rounded-full mb-5"></div>
+            <h2 id="loading-text" class="text-xl font-medium text-white text-center">Procesando archivo...</h2>
+        </div>
+        
+    </div>
+
+    <!-- Zona indicadora de Drag & Drop -->
+    <div id="drop-overlay">
+        <div class="text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-blue-500 mb-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <h2 class="text-4xl font-bold text-white drop-shadow-md">Suelta el archivo aquí</h2>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
+        import * as THREE from 'three'; 
+        
+        const startPanel = document.getElementById('start-panel');
+        const loadingPanel = document.getElementById('loading-panel');
+        const loadingText = document.getElementById('loading-text');
+        const uiLayer = document.getElementById('ui-layer');
+        const fileInput = document.getElementById('file-upload');
+        const btnExample = document.getElementById('btn-example');
+        const dropOverlay = document.getElementById('drop-overlay');
+        const viewerContainer = document.getElementById('viewer-container');
+        
+        let currentViewer = null;
+
+        // Capturar errores no controlados (Silent fails de los Workers)
+        window.addEventListener('unhandledrejection', event => {
+            console.error('Error silencioso detectado:', event.reason);
+            if (!loadingPanel.classList.contains('hidden')) {
+                loadingText.innerHTML = `Error interno en el procesador.<br><span class="text-xs text-red-400 mt-2 block font-normal">${event.reason.message || 'El archivo puede estar corrupto o ser demasiado pesado para la memoria del navegador.'}</span>`;
+                setTimeout(() => { location.reload(); }, 6000);
+            }
+        });
+
+        // --- Eventos de Drag & Drop ---
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropOverlay.classList.add('active');
+        });
+
+        window.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            if (e.target === dropOverlay) {
+                dropOverlay.classList.remove('active');
+            }
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropOverlay.classList.remove('active');
+            
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                handleFile(file);
+            }
+        });
+
+        // --- Evento de Selección de Archivo ---
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // --- Generador PROCEDURAL de .splat ---
+        function createSyntheticSplatBlob() {
+            const splatCount = 50000;
+            const buffer = new ArrayBuffer(splatCount * 32);
+            const floatView = new Float32Array(buffer);
+            const uint8View = new Uint8Array(buffer);
+
+            for (let i = 0; i < splatCount; i++) {
+                const byteBase = i * 32;
+                const floatBase = i * 8; 
+                const u = Math.random() * Math.PI * 2;
+                const v = Math.random() * Math.PI * 2;
+                const R = 3.0; 
+                const r = 1.0; 
+                const noise = (Math.random() - 0.5) * 0.2;
+
+                const x = (R + r * Math.cos(v)) * Math.cos(u) + noise;
+                const z = (R + r * Math.cos(v)) * Math.sin(u) + noise;
+                const y = r * Math.sin(v) + noise;
+
+                floatView[floatBase + 0] = x;
+                floatView[floatBase + 1] = y;
+                floatView[floatBase + 2] = z;
+                floatView[floatBase + 3] = 0.05 + Math.random() * 0.05;
+                floatView[floatBase + 4] = 0.05 + Math.random() * 0.05;
+                floatView[floatBase + 5] = 0.05 + Math.random() * 0.05;
+
+                uint8View[byteBase + 24] = Math.floor(Math.abs(Math.sin(u)) * 255);
+                uint8View[byteBase + 25] = Math.floor(Math.abs(Math.cos(v)) * 255);
+                uint8View[byteBase + 26] = Math.floor(Math.abs(Math.sin(u+v)) * 255);
+                uint8View[byteBase + 27] = 255; 
+
+                uint8View[byteBase + 28] = 255; 
+                uint8View[byteBase + 29] = 128; 
+                uint8View[byteBase + 30] = 128; 
+                uint8View[byteBase + 31] = 128; 
+            }
+
+            return new Blob([buffer], { type: 'application/octet-stream' });
+        }
+
+        btnExample.addEventListener('click', () => {
+            const exampleName = 'Toroide-Generado.splat';
+            
+            startPanel.classList.add('hidden');
+            loadingPanel.classList.remove('hidden');
+            loadingPanel.classList.add('flex');
+            uiLayer.style.backgroundColor = 'rgba(15, 23, 42, 0.8)';
+            
+            loadingText.innerHTML = `Generando puntos...<br><span class="text-xs text-slate-400 mt-1 block font-normal">Creando archivo binario en memoria</span>`;
+
+            setTimeout(() => {
+                try {
+                    const syntheticBlob = createSyntheticSplatBlob();
+                    const blobUrl = URL.createObjectURL(syntheticBlob);
+                    initViewer(blobUrl, exampleName);
+                } catch (error) {
+                    console.error(error);
+                    loadingText.innerText = `Error al generar el modelo.`;
+                    setTimeout(() => { location.reload(); }, 3000);
+                }
+            }, 100);
+        });
+
+        function handleFile(file) {
+            const validExtensions = ['.splat', '.ply'];
+            const fileName = file.name.toLowerCase();
+            const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+            
+            if (!isValid) {
+                alert('Por favor, selecciona un archivo válido con formato .splat o .ply');
+                return;
+            }
+
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            let sizeWarning = `<br><span class="text-sm text-slate-400 mt-2 block font-normal">Tamaño: ${sizeMB} MB</span>`;
+            
+            if (file.size > 250 * 1024 * 1024) { 
+                sizeWarning += `<span class="text-xs text-yellow-400 mt-1 block font-normal">El archivo es muy pesado. El procesamiento tomará algo de tiempo.</span>`;
+            }
+
+            startPanel.classList.add('hidden');
+            loadingPanel.classList.remove('hidden');
+            loadingPanel.classList.add('flex');
+            uiLayer.style.backgroundColor = 'rgba(15, 23, 42, 0.8)';
+            loadingText.innerHTML = `Cargando <b>${file.name}</b>...${sizeWarning}`;
+
+            const fileUrl = URL.createObjectURL(file);
+            initViewer(fileUrl, fileName);
+        }
+
+        function initViewer(url, fileName) {
+            viewerContainer.innerHTML = '';
+
+            try {
+                currentViewer = new GaussianSplats3D.Viewer({
+                    'rootElement': viewerContainer,
+                    'cameraUp': [0, -1, 0], 
+                    // Empezamos como nube de puntos
+                    'splatScale': 0.02,
+                    'halfPrecisionCovariancesOnGPU': false, 
+                    'sharedMemoryForWorkers': false,        
+                    'gpuAcceleratedSort': false             
+                });
+            } catch (err) {
+                console.error("Error al inicializar Viewer:", err);
+                loadingText.innerHTML = `Error iniciando WebGL.<br><span class="text-xs text-red-400 mt-1 block font-normal">${err.message}</span>`;
+                return;
+            }
+
+            let fileFormat = GaussianSplats3D.SceneFormat.Splat;
+            if (fileName.endsWith('.ply')) {
+                fileFormat = GaussianSplats3D.SceneFormat.Ply;
+            }
+
+            currentViewer.addSplatScene(url, {
+                'showLoadingUI': false,
+                'format': fileFormat,
+                'onProgress': (percent) => {
+                    const progressValue = typeof percent === 'number' ? percent.toFixed(0) : 0;
+                    loadingText.innerHTML = `Procesando: <b>${progressValue}%</b><br><span class="text-xs text-blue-300 mt-2 block font-normal">Organizando millones de gaussianas...</span>`;
+                }
+            })
+            .then(() => {
+                loadingPanel.style.transition = 'opacity 0.5s ease';
+                loadingPanel.style.opacity = '0';
+                setTimeout(() => {
+                    loadingPanel.classList.remove('flex');
+                    loadingPanel.classList.add('hidden');
+                    loadingPanel.style.opacity = '1'; 
+                }, 500);
+                
+                // --- 1. IDENTIFICAR EL CENTRO MATEMÁTICO ---
+                const centerOfMass = currentViewer.controls.target.clone();
+                
+                // --- 2. POSICIÓN INICIAL LEJANA ---
+                currentViewer.camera.position.set(
+                    centerOfMass.x + 4.0, 
+                    centerOfMass.y - 4.0, 
+                    centerOfMass.z + 4.0
+                );
+                currentViewer.controls.target.copy(centerOfMass);
+                currentViewer.controls.update();
+
+                const startRadius = currentViewer.camera.position.distanceTo(centerOfMass);
+                const endRadius = 1.8; // Ligeramente más lejos para apreciar la forma completa (Estilo Luma)
+
+                viewerContainer.style.opacity = '1';
+
+                // Efecto Luma AI: Sin elementos artificiales ni esferas de choque. 
+                // Todo el efecto se basa en la neblina de puntos y el movimiento de cámara.
+
+                uiLayer.style.pointerEvents = 'none';
+                uiLayer.style.backgroundColor = 'transparent'; 
+                
+                uiLayer.innerHTML = `
+                    <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 p-4 rounded-xl pointer-events-auto shadow-xl" style="animation: fadeIn 1s ease-in;">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <h3 class="text-white font-semibold text-sm truncate max-w-[200px]" title="${fileName}">${fileName}</h3>
+                        </div>
+                        <div class="text-xs text-green-400 mt-2 mb-2 p-2 bg-green-900/30 rounded border border-green-800/50">
+                            ✓ Núcleo denso detectado
+                        </div>
+                        <div class="text-slate-400 text-xs mt-2 space-y-1">
+                            <p><b>Click Izq + Arrastrar:</b> Rotar</p>
+                            <p><b>Click Der + Arrastrar:</b> Mover</p>
+                            <p><b>Rueda ratón:</b> Zoom</p>
+                        </div>
+                        <button id="btn-replay" class="mt-4 text-sm bg-blue-600 hover:bg-blue-500 text-white py-2 px-4 rounded-lg w-full transition font-medium flex justify-center items-center gap-2 shadow-lg shadow-blue-900/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Reiniciar Animación
+                        </button>
+                        <button id="btn-reset" class="mt-2 text-sm bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded-lg w-full transition font-medium flex justify-center items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Cerrar Archivo
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('btn-reset').addEventListener('click', () => {
+                    location.reload(); 
+                });
+
+                currentViewer.start();
+
+                // --- 4. CONFIGURAR LA ANIMACIÓN (ESTILO LUMA AI) ---
+                let animationFrameId = null;
+                
+                // Función auxiliar segura para actualizar el tamaño de los puntos
+                function updateSplatScale(mesh, scale) {
+                    if (typeof mesh.setSplatScale === 'function') {
+                        mesh.setSplatScale(scale);
+                    } else if (mesh.material && mesh.material.uniforms) {
+                        if (mesh.material.uniforms.globalSplatScale) {
+                            mesh.material.uniforms.globalSplatScale.value = scale;
+                        } else if (mesh.material.uniforms.splatScale) {
+                            mesh.material.uniforms.splatScale.value = scale;
+                        }
+                    }
+                }
+
+                function getSplatMeshes() {
+                    const arr = [];
+                    if (currentViewer.splatMesh) arr.push(currentViewer.splatMesh);
+                    if (currentViewer.splatMeshes) arr.push(...currentViewer.splatMeshes);
+                    return [...new Set(arr)];
+                }
+
+                let stopOrbitHandler = () => { 
+                    if(currentViewer.controls) currentViewer.controls.autoRotate = false; 
+                };
+
+                function playIntroAnimation() {
+                    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+                    const meshes = getSplatMeshes();
+
+                    // ESTADO INICIAL: Nube de puntos diminutos (neblina), estructura espacial real.
+                    meshes.forEach(mesh => {
+                        mesh.scale.setScalar(1.0); 
+                        mesh.position.set(0, 0, 0); 
+                        updateSplatScale(mesh, 0.02); 
+                    });
+
+                    // Reset cámara: Empieza desde un ángulo dinámico (lateral bajo) para el barrido
+                    currentViewer.camera.position.set(
+                        centerOfMass.x + 3.5, 
+                        centerOfMass.y - 1.5, 
+                        centerOfMass.z + 3.5
+                    );
+                    currentViewer.controls.target.copy(centerOfMass);
+                    currentViewer.controls.update();
+
+                    if (currentViewer.controls) {
+                        currentViewer.controls.autoRotate = true;
+                        currentViewer.controls.autoRotateSpeed = 10.0; // Paneo inicial suave pero rápido
+                        
+                        viewerContainer.removeEventListener('mousedown', stopOrbitHandler);
+                        viewerContainer.removeEventListener('touchstart', stopOrbitHandler);
+                        viewerContainer.removeEventListener('wheel', stopOrbitHandler);
+
+                        viewerContainer.addEventListener('mousedown', stopOrbitHandler, { once: true });
+                        viewerContainer.addEventListener('touchstart', stopOrbitHandler, { once: true });
+                        viewerContainer.addEventListener('wheel', stopOrbitHandler, { once: true });
+                    }
+
+                    // Bucle cinemático Luma AI
+                    const animDuration = 5500; // Duración total de la toma
+                    const startTime = performance.now();
+
+                    function animateStep(time) {
+                        // Interrupción manual del usuario
+                        if (!currentViewer.controls.autoRotate) {
+                            meshes.forEach(mesh => updateSplatScale(mesh, 1.0));
+                            return;
+                        }
+
+                        const elapsed = time - startTime;
+                        
+                        // --- FASE 1: Barrido de Cámara (Cinematic Sweep)
+                        const tCam = Math.min(elapsed / animDuration, 1);
+                        const cameraEase = 1 - Math.pow(1 - tCam, 4); // easeOutQuart (Frena muy suavemente)
+
+                        const currentRadius = startRadius - (startRadius - endRadius) * cameraEase;
+                        const direction = new THREE.Vector3().subVectors(currentViewer.camera.position, currentViewer.controls.target).normalize();
+                        currentViewer.camera.position.copy(currentViewer.controls.target).add(direction.multiplyScalar(currentRadius));
+                        
+                        // La órbita desacelera lentamente hasta quedar en una rotación majestuosa (0.5)
+                        currentViewer.controls.autoRotateSpeed = 10.0 - (10.0 - 0.5) * cameraEase;
+
+                        // --- FASE 2: Materialización Fluida (Engrosamiento)
+                        // Dejamos 800ms de pura neblina antes de empezar a solidificar
+                        const delay = 800;
+                        const growDuration = 3000;
+                        let tScale = 0;
+                        if (elapsed > delay) {
+                            tScale = Math.min((elapsed - delay) / growDuration, 1);
+                        }
+                        
+                        // Curva EaseInOutCubic: Empieza lento, acelera en el medio y termina muy lento
+                        // Esto da la sensación sedosa de que la neblina "cuaja" en lugar de "inflarse"
+                        const scaleEase = tScale < 0.5 ? 4 * tScale * tScale * tScale : 1 - Math.pow(-2 * tScale + 2, 3) / 2;
+                        
+                        // De tamaño de partícula (0.02) a sólido (1.0)
+                        const splatScaleValue = 0.02 + 0.98 * scaleEase;
+
+                        meshes.forEach(mesh => updateSplatScale(mesh, splatScaleValue));
+
+                        if (tCam < 1) {
+                            animationFrameId = requestAnimationFrame(animateStep);
+                        } else {
+                            // Cierre perfecto al terminar la toma
+                            meshes.forEach(mesh => updateSplatScale(mesh, 1.0));
+                        }
+                    }
+                    
+                    animationFrameId = requestAnimationFrame(animateStep);
+                }
+
+                // Asignar el evento al botón
+                document.getElementById('btn-replay').addEventListener('click', playIntroAnimation);
+
+                // Ejecutar al cargar
+                playIntroAnimation();
+
+            })
+            .catch(err => {
+                console.error("Error cargando el modelo:", err);
+                loadingText.innerHTML = `Error procesando el archivo.<br><span class="text-xs text-red-400 mt-2 block font-normal">${err.message || 'El formato puede ser incompatible o la memoria es insuficiente.'}</span>`;
+                setTimeout(() => { location.reload(); }, 6000);
+            });
+        }
+    </script>
+</body>
+</html>

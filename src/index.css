@@ -3,6 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  background-color: #000;
+}
+
 /* Clases de accesibilidad */
 .sr-only {
   position: absolute;

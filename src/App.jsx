@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { Menu } from 'lucide-react';
 import Mapa from '@/components/features/map/Mapa';
 import Sidebar from '@/components/features/sidebar/user/UserSidebar';
@@ -12,6 +13,8 @@ import { getPlaces, getEvents, createPlace, createEvent } from '@/services/api';
 
 
 function App() {
+    const pageRef = useRef(null);
+    const [domCanvas, setDomCanvas] = useState(null);
     const [lugares, setLugares] = useState([]);
     const [eventos, setEventos] = useState([]);
     const [selectedLugar, setSelectedLugar] = useState(null);
@@ -241,8 +244,47 @@ function App() {
         }
     };
 
+    // Captura el fondo para el efecto Liquid Glass
+    useEffect(() => {
+        const captureBackground = async () => {
+            if (!pageRef.current) return;
+
+            // Esperar a que los elementos (especialmente el mapa) se rendericen
+            // MapLibre con preserveDrawingBuffer: true permitirá la captura
+            setTimeout(async () => {
+                try {
+                    console.log("Capturing background for liquid effect...");
+
+                    // Aseguramos el color de fondo basado en el tema
+                    const bgColor = darkMode ? '#000000' : '#f3f4f6';
+
+                    const canvas = await html2canvas(pageRef.current, {
+                        scale: 1, // Calidad original
+                        useCORS: true,
+                        backgroundColor: bgColor,
+                        scrollY: -window.scrollY,
+                        ignoreElements: (element) => {
+                            return element.classList.contains('ignore-capture') ||
+                                element.hasAttribute('data-html2canvas-ignore');
+                        }
+                    });
+                    setDomCanvas(canvas);
+                    console.log("Background captured successfully.");
+                } catch (error) {
+                    console.error('Error capturing background:', error);
+                }
+            }, 1500); // 1.5s delay
+        };
+
+        captureBackground();
+
+        // Opcional: Recapturar si el tema cambia o tras un tiempo largo
+        // window.addEventListener('recapture-liquid', captureBackground);
+        // return () => window.removeEventListener('recapture-liquid', captureBackground);
+    }, [mapTheme, darkMode]); // Re-captura si el tema cambia
+
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-black">
+        <div vaul-drawer-wrapper="" ref={pageRef} className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-black">
             <Mapa
                 lugares={filteredLugares}
                 eventos={eventos}
@@ -264,6 +306,8 @@ function App() {
                 setStarrySky={setStarrySky}
                 darkMode={darkMode}
                 toggleDarkMode={toggleDarkMode}
+                domCanvas={domCanvas}
+                pageRef={pageRef}
             />
 
             {/* Top Bar Container */}

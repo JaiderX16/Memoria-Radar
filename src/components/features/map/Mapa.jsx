@@ -16,7 +16,8 @@ import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import ModalPin from './ModalPin';
 import SearchModal from '@/components/features/search/SearchModal';
 import Profile from '@/components/features/profile/Profile';
-import CircleButton from '@/buttons/CircleButton';
+import { LiquidActionButton } from '@/components/LiquidGlass';
+import stardustPattern from '@/assets/stardust.png';
 
 export default function Mapa({
   lugares,
@@ -38,10 +39,13 @@ export default function Mapa({
   setMapTheme,
   setStarrySky,
   darkMode,
-  toggleDarkMode
+  toggleDarkMode,
+  domCanvas,
+  pageRef
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
+  const starryBgRef = useRef(null);
   const [userLocation, setUserLocation] = useState(null);
   const [isMarkerVisible, setIsMarkerVisible] = useState(true);
   const [isAddingPoint, setIsAddingPoint] = useState(false);
@@ -149,7 +153,7 @@ export default function Mapa({
   // Efecto para mover el fondo estrellado
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !starrySky || !containerRef.current) return;
+    if (!map || !starrySky || !starryBgRef.current) return;
 
     const updateBackground = () => {
       const center = map.getCenter();
@@ -158,7 +162,9 @@ export default function Mapa({
       const x = -lng * 10;
       const y = -lat * 10;
 
-      containerRef.current.style.backgroundPosition = `${x}px ${y}px`;
+      if (starryBgRef.current) {
+        starryBgRef.current.style.backgroundPosition = `${x}px ${y}px`;
+      }
     };
 
     map.on('move', updateBackground);
@@ -571,177 +577,188 @@ OBJETO: ${main.osm_id} (${main.type})
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full rounded-none overflow-hidden border-none transition-colors duration-500 ${!starrySky ? 'bg-gray-100 dark:bg-black' : ''}`}
-      style={starrySky ? {
-        backgroundColor: '#000',
-        backgroundImage: 'radial-gradient(circle at center, #111 0%, #000 100%), url("https://www.transparenttextures.com/patterns/stardust.png")',
-        backgroundBlendMode: 'screen',
-        transition: 'background-color 0.5s ease' // Solo animar color, posición es en tiempo real
-      } : {}}
+      className={`relative w-full h-full rounded-none overflow-hidden border-none transition-colors duration-500 ${!starrySky ? 'bg-gray-100 dark:bg-black' : 'bg-black'}`}
     >
-      <Map
-        ref={mapRef}
-        projection={{ type: 'globe' }}
-        mapTheme={mapTheme}
-        starrySky={starrySky}
-        center={[-75.21, -12.06805]}
-        zoom={14.5}
-        attributionControl={false}
-      >
-        <MapControls
-          position="bottom-right"
-          showCompass
-          showLocate
-          onLocate={(coords) => setUserLocation(coords)}
-          chatState={chatState}
+      {starrySky && (
+        <div
+          ref={starryBgRef}
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage: `url("${stardustPattern}")`,
+            backgroundRepeat: 'repeat',
+            opacity: 1, // Al máximo para que resalten más
+            filter: 'contrast(500%) brightness(100%) grayscale(100%)', // Mayor contraste y brillo al máximo para estrellas blancas super brillantes
+          }}
+        />
+      )}
+      <div className="relative z-10 w-full h-full">
+        <Map
+          ref={mapRef}
+          projection={{ type: 'globe' }}
+          mapTheme={mapTheme}
+          starrySky={starrySky}
+          center={[-75.21, -12.06805]}
+          zoom={14.5}
+          attributionControl={false}
         >
-          <ControlGroup>
-            <ControlButton
-              onClick={onToggleChat}
-              label={chatState === 'closed' ? 'Abrir Chat' : 'Cerrar Chat'}
+          <MapControls
+            position="bottom-right"
+            showCompass
+            showLocate
+            onLocate={(coords) => setUserLocation(coords)}
+            chatState={chatState}
+            domCanvas={domCanvas}
+            pageRef={pageRef}
+            isDarkMode={darkMode}
+          >
+            <ControlGroup>
+              <ControlButton
+                onClick={onToggleChat}
+                label={chatState === 'closed' ? 'Abrir Chat' : 'Cerrar Chat'}
+              >
+                <MessageSquare className="size-4" />
+              </ControlButton>
+            </ControlGroup>
+          </MapControls>
+
+          {/* Atribución Discreta */}
+          <div className="absolute bottom-1 left-1 z-10">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="p-1.5 rounded-full bg-black/20 text-white/30 hover:bg-black/40 hover:text-white/80 transition-all backdrop-blur-sm">
+                  <Info className="w-3 h-3" />
+                  <span className="sr-only">Map credits</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-[10px] bg-black/80 text-white/70 border-none backdrop-blur-md">
+                <p>© CARTO, © OpenStreetMap contributors</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Marcador de Ubicación del Usuario - Estilo Apple Maps */}
+          {userLocation && isMarkerVisible && (
+            <MapMarker
+              latitude={userLocation.latitude}
+              longitude={userLocation.longitude}
             >
-              <MessageSquare className="size-4" />
-            </ControlButton>
-          </ControlGroup>
-        </MapControls>
-
-        {/* Atribución Discreta */}
-        <div className="absolute bottom-1 left-1 z-10">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="p-1.5 rounded-full bg-black/20 text-white/30 hover:bg-black/40 hover:text-white/80 transition-all backdrop-blur-sm">
-                <Info className="w-3 h-3" />
-                <span className="sr-only">Map credits</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="text-[10px] bg-black/80 text-white/70 border-none backdrop-blur-md">
-              <p>© CARTO, © OpenStreetMap contributors</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
-        {/* Marcador de Ubicación del Usuario - Estilo Apple Maps */}
-        {userLocation && isMarkerVisible && (
-          <MapMarker
-            latitude={userLocation.latitude}
-            longitude={userLocation.longitude}
-          >
-            <MarkerContent>
-              <div className="relative flex items-center justify-center w-5 h-5 bg-[#C7C7C7] rounded-full shadow-lg ring-1 ring-black/10">
-                <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                <div className="absolute w-full h-full bg-blue-500 rounded-full animate-ping opacity-20"></div>
-              </div>
-            </MarkerContent>
-            <MarkerLabel className="text-xs font-bold text-blue-500 bg-white px-2 py-1 rounded shadow-md mt-1">
-              Tu Ubicación
-            </MarkerLabel>
-          </MapMarker>
-        )}
-
-        {/* Marcadores de puntos de interés agregados por el usuario */}
-        {newPoints.map((point) => (
-          <MapMarker
-            key={point.id}
-            latitude={point.latitud}
-            longitude={point.longitud}
-            onClick={() => handleMarkerClick(point)}
-          >
-            <MarkerContent>
-              <div className="relative flex items-center justify-center w-8 h-8">
-                <div className="absolute w-full h-full bg-green-500 rounded-full opacity-20 animate-pulse"></div>
-                <MapPin className="w-6 h-6 text-green-600 drop-shadow-lg" fill="currentColor" />
-              </div>
-            </MarkerContent>
-            <MarkerLabel className="text-xs font-semibold text-green-600 bg-white px-2 py-1 rounded shadow-md mt-1">
-              {point.nombre}
-            </MarkerLabel>
-          </MapMarker>
-        ))}
-
-        {/* Marcador temporal mientras se agrega un punto */}
-        {tempPoint && (
-          <MapMarker
-            latitude={tempPoint.latitud}
-            longitude={tempPoint.longitud}
-          >
-            <MarkerContent>
-              <div className="relative flex items-center justify-center w-8 h-8">
-                <div className="absolute w-full h-full bg-yellow-500 rounded-full opacity-30 animate-ping"></div>
-                <MapPin className="w-6 h-6 text-yellow-500 drop-shadow-lg" fill="currentColor" />
-              </div>
-            </MarkerContent>
-          </MapMarker>
-        )}
-
-        {/* Marcadores de lugares desde el backend */}
-        {lugares.map((lugar) => (
-          <MapMarker
-            key={lugar.id}
-            latitude={lugar.latitud}
-            longitude={lugar.longitud}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMarkerClick(lugar);
-            }}
-          >
-            <MarkerContent>
-              <div className="relative group cursor-pointer transition-transform hover:scale-110">
-                <div
-                  className="absolute w-full h-full rounded-full opacity-20 animate-pulse"
-                  style={{ backgroundColor: lugar.color || '#3b82f6' }}
-                ></div>
-                <div className="relative flex items-center justify-center w-10 h-10">
-                  <MapPin
-                    size={32}
-                    className="drop-shadow-lg"
-                    fill={lugar.color || '#3b82f6'}
-                    color="#ffffff"
-                    strokeWidth={1.5}
-                  />
+              <MarkerContent>
+                <div className="relative flex items-center justify-center w-5 h-5 bg-[#C7C7C7] rounded-full shadow-lg ring-1 ring-black/10">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                  <div className="absolute w-full h-full bg-blue-500 rounded-full animate-ping opacity-20"></div>
                 </div>
-                {/* Tooltip on hover */}
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-black/80 text-black dark:text-white text-xs font-bold px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                  {lugar.nombre}
-                </div>
-              </div>
-            </MarkerContent>
-          </MapMarker>
-        ))}
+              </MarkerContent>
+              <MarkerLabel className="text-xs font-bold text-blue-500 bg-white px-2 py-1 rounded shadow-md mt-1">
+                Tu Ubicación
+              </MarkerLabel>
+            </MapMarker>
+          )}
 
-        {/* Marcadores de EVENTOS */}
-        {eventos.map((evento) => (
-          <MapMarker
-            key={evento.id}
-            latitude={evento.lat}
-            longitude={evento.lng}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleMarkerClick(evento);
-              if (onEventClick) onEventClick(evento);
-            }}
-          >
-            <MarkerContent>
-              <div className="relative group cursor-pointer transition-transform hover:scale-110">
-                {/* Estrella pulsante para eventos */}
-                <div className="absolute w-full h-full rounded-full bg-yellow-400 opacity-30 animate-ping"></div>
-                <div className="relative flex items-center justify-center w-10 h-10">
-                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-                    <span className="text-white text-[10px] font-black">★</span>
+          {/* Marcadores de puntos de interés agregados por el usuario */}
+          {newPoints.map((point) => (
+            <MapMarker
+              key={point.id}
+              latitude={point.latitud}
+              longitude={point.longitud}
+              onClick={() => handleMarkerClick(point)}
+            >
+              <MarkerContent>
+                <div className="relative flex items-center justify-center w-8 h-8">
+                  <div className="absolute w-full h-full bg-green-500 rounded-full opacity-20 animate-pulse"></div>
+                  <MapPin className="w-6 h-6 text-green-600 drop-shadow-lg" fill="currentColor" />
+                </div>
+              </MarkerContent>
+              <MarkerLabel className="text-xs font-semibold text-green-600 bg-white px-2 py-1 rounded shadow-md mt-1">
+                {point.nombre}
+              </MarkerLabel>
+            </MapMarker>
+          ))}
+
+          {/* Marcador temporal mientras se agrega un punto */}
+          {tempPoint && (
+            <MapMarker
+              latitude={tempPoint.latitud}
+              longitude={tempPoint.longitud}
+            >
+              <MarkerContent>
+                <div className="relative flex items-center justify-center w-8 h-8">
+                  <div className="absolute w-full h-full bg-yellow-500 rounded-full opacity-30 animate-ping"></div>
+                  <MapPin className="w-6 h-6 text-yellow-500 drop-shadow-lg" fill="currentColor" />
+                </div>
+              </MarkerContent>
+            </MapMarker>
+          )}
+
+          {/* Marcadores de lugares desde el backend */}
+          {lugares.map((lugar) => (
+            <MapMarker
+              key={lugar.id}
+              latitude={lugar.latitud}
+              longitude={lugar.longitud}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerClick(lugar);
+              }}
+            >
+              <MarkerContent>
+                <div className="relative group cursor-pointer transition-transform hover:scale-110">
+                  <div
+                    className="absolute w-full h-full rounded-full opacity-20 animate-pulse"
+                    style={{ backgroundColor: lugar.color || '#3b82f6' }}
+                  ></div>
+                  <div className="relative flex items-center justify-center w-10 h-10">
+                    <MapPin
+                      size={32}
+                      className="drop-shadow-lg"
+                      fill={lugar.color || '#3b82f6'}
+                      color="#ffffff"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-black/80 text-black dark:text-white text-xs font-bold px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                    {lugar.nombre}
                   </div>
                 </div>
-                {/* Tooltip on hover */}
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                  {evento.title}
-                </div>
-              </div>
-            </MarkerContent>
-          </MapMarker>
-        ))}
+              </MarkerContent>
+            </MapMarker>
+          ))}
 
-      </Map>
+          {/* Marcadores de EVENTOS */}
+          {eventos.map((evento) => (
+            <MapMarker
+              key={evento.id}
+              latitude={evento.lat}
+              longitude={evento.lng}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerClick(evento);
+                if (onEventClick) onEventClick(evento);
+              }}
+            >
+              <MarkerContent>
+                <div className="relative group cursor-pointer transition-transform hover:scale-110">
+                  {/* Estrella pulsante para eventos */}
+                  <div className="absolute w-full h-full rounded-full bg-yellow-400 opacity-30 animate-ping"></div>
+                  <div className="relative flex items-center justify-center w-10 h-10">
+                    <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                      <span className="text-white text-[10px] font-black">★</span>
+                    </div>
+                  </div>
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                    {evento.title}
+                  </div>
+                </div>
+              </MarkerContent>
+            </MapMarker>
+          ))}
+
+        </Map>
+      </div>
 
       {/* Herramientas Flotantes */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-3 items-center">
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-3 items-center ignore-capture">
         {/* Botón Perfil / Usuario */}
         <Profile
           user={user}
@@ -760,12 +777,15 @@ OBJETO: ${main.osm_id} (${main.type})
         {/* Botón Buscar */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <CircleButton
+            <LiquidActionButton
               onClick={() => setIsSearchOpen(true)}
-              style={{ width: '3.5rem', height: '3.5rem' }}
+              domCanvas={domCanvas}
+              pageRef={pageRef}
+              isDarkMode={darkMode}
+              className="w-14 h-14"
             >
-              <Search size={20} strokeWidth={2.5} className="text-zinc-700 dark:text-white" />
-            </CircleButton>
+              <Search size={20} strokeWidth={2.5} />
+            </LiquidActionButton>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
             <p>Buscar lugares (Ctrl+K)</p>
@@ -775,21 +795,19 @@ OBJETO: ${main.osm_id} (${main.type})
         {/* Botón de Extracción de Datos (PRUEBAS) */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <CircleButton
+            <LiquidActionButton
               onClick={toggleExtractingMode}
-              disabled={isExtracting}
-              style={{
-                width: '3.5rem',
-                height: '3.5rem',
-                border: isExtractingMode ? '2px solid #3b82f6' : undefined
-              }}
+              domCanvas={domCanvas}
+              pageRef={pageRef}
+              isDarkMode={darkMode}
+              className={`w-14 h-14 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
             >
               <Globe
                 size={20}
-                className={`${isExtracting ? 'animate-spin' : ''} ${isExtractingMode ? 'text-blue-500' : 'text-zinc-700 dark:text-white'}`}
+                className={isExtracting ? 'animate-spin' : ''}
                 strokeWidth={2.5}
               />
-            </CircleButton>
+            </LiquidActionButton>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
             <p>{isExtractingMode ? 'Cancelar Extracción' : 'Pruebas: Extraer Datos'}</p>
@@ -799,20 +817,19 @@ OBJETO: ${main.osm_id} (${main.type})
         {/* Botón flotante para agregar puntos de interés */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <CircleButton
+            <LiquidActionButton
               onClick={toggleAddingMode}
-              style={{
-                width: '3.5rem',
-                height: '3.5rem',
-                border: isAddingPoint ? '2px solid #ef4444' : undefined
-              }}
+              domCanvas={domCanvas}
+              pageRef={pageRef}
+              isDarkMode={darkMode}
+              className={`w-14 h-14 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
             >
               {isAddingPoint ? (
                 <X size={20} strokeWidth={2.5} className="text-red-500" />
               ) : (
                 <Plus size={20} strokeWidth={2.5} className="text-green-600 dark:text-green-400" />
               )}
-            </CircleButton>
+            </LiquidActionButton>
           </TooltipTrigger>
           <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
             <p>{isAddingPoint ? 'Cancelar' : 'Agregar Punto'}</p>
