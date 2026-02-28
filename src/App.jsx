@@ -284,7 +284,7 @@ function App() {
     }, [mapTheme, darkMode]); // Re-captura si el tema cambia
 
     return (
-        <div vaul-drawer-wrapper="" ref={pageRef} className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-black">
+        <div vaul-drawer-wrapper="" ref={pageRef} className="relative w-full h-[100dvh] overflow-hidden bg-gray-100 dark:bg-black">
             <Mapa
                 lugares={filteredLugares}
                 eventos={eventos}

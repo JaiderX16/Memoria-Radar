@@ -3,8 +3,24 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+html,
+body,
+#root {
+  height: 100vh;
+  /* Fallback for older browsers */
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Prevents global scrolling */
+  overscroll-behavior-y: none;
+  /* Prevents pull-to-refresh and bounce on mobile */
+  touch-action: none;
+  /* Disables browser-level panning at the root */
   background-color: #000;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Clases de accesibilidad */
