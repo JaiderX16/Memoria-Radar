@@ -206,21 +206,12 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
 
     let lastDomCanvas: HTMLCanvasElement | null | undefined = undefined;
     let lastImageUrl: string | undefined = undefined;
-    let textureFrameCounter = 0;
-
     const checkAndUpdateTexture = () => {
       const currentDomCanvas = domCanvasRef.current;
       const currentImageUrl = imageUrlRef.current;
 
-      // Re-upload domCanvas texture every 3rd frame for real-time refraction
-      // (~20fps texture updates → smooth enough, 3x less GPU work than every frame)
       if (currentDomCanvas) {
-        textureFrameCounter++;
-        if (textureFrameCounter >= 3 || lastDomCanvas !== currentDomCanvas) {
-          textureFrameCounter = 0;
-          lastDomCanvas = currentDomCanvas;
-          updateTexture(currentDomCanvas);
-        }
+        updateTexture(currentDomCanvas);
       } else if (currentImageUrl !== lastImageUrl) {
         lastImageUrl = currentImageUrl;
         if (currentImageUrl) {
@@ -596,11 +587,8 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
           const currentDomCanvas = domCanvasRef.current;
           const currentImageUrl = imageUrlRef.current;
 
-          if (currentDomCanvas !== lastDomCanvas) {
-            lastDomCanvas = currentDomCanvas;
-            if (currentDomCanvas) {
-              updateTexture(currentDomCanvas);
-            }
+          if (currentDomCanvas) {
+            updateTexture(currentDomCanvas);
           } else if (!currentDomCanvas && currentImageUrl !== lastImageUrl) {
             lastImageUrl = currentImageUrl;
             if (currentImageUrl) {
