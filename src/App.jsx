@@ -388,6 +388,9 @@ function App() {
                 }}
                 onClearFilters={clearAllFilters}
                 onToggleCategory={toggleCategory}
+                domCanvas={domCanvas}
+                pageRef={pageRef}
+                isDarkMode={darkMode}
             />
 
             <FormularioLugar
@@ -397,8 +400,8 @@ function App() {
                 onSubmit={handleSubmitLugar}
             />
 
-            {/* Bottom Search Bar (Apple Maps Style) */}
-            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-[360px] z-[20] px-4 pointer-events-auto">
+            {/* Search Bar (Apple Maps Style) */}
+            <div className="fixed bottom-4 md:bottom-auto md:top-4 left-1/2 -translate-x-1/2 w-full max-w-[360px] md:max-w-[420px] z-[20] px-4 pointer-events-auto transition-all duration-300">
                 <LiquidGlassInput
                     domCanvas={domCanvas}
                     pageRef={pageRef}

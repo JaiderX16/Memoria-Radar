@@ -814,8 +814,8 @@ function MapControls({
             dynamicPositionClass = "bottom-24 right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
         }
     } else if (position === "bottom-right") {
-        // En desktop, siempre se queda abajo arriba del input
-        dynamicPositionClass = "bottom-24 right-4 z-[1100]";
+        // En desktop, ahora que la barra está arriba, los botones pueden bajar
+        dynamicPositionClass = "bottom-6 right-4 z-[1100]";
     }
 
     return (

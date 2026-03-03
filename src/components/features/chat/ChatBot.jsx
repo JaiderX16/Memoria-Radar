@@ -11,7 +11,9 @@ import {
     Mic
 } from 'lucide-react';
 import ChatBotMobile from './ChatBotMobile';
-
+import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
+import html2canvas from 'html2canvas';
 const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState, ...props }) => {
     const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -74,10 +76,42 @@ const ChatBotDesktop = ({
     isTyping,
     setIsTyping,
     showEmojiPicker,
-    setShowEmojiPicker
+    setShowEmojiPicker,
+    domCanvas,
+    pageRef,
+    isDarkMode
 }) => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const containerRef = useRef(null);
+    const [localCanvas, setLocalCanvas] = useState(null);
+    const timeoutRef = useRef();
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const updateCanvas = async () => {
+            if (containerRef.current) {
+                try {
+                    const canvas = await html2canvas(containerRef.current, {
+                        backgroundColor: null,
+                        scale: 0.5, // optimize performance
+                        logging: false,
+                        ignoreElements: (el) => el.tagName === 'INPUT' || el.tagName === 'BUTTON'
+                    });
+                    setLocalCanvas(canvas);
+                } catch (e) {
+                    // Ignore background capture errors
+                }
+            }
+        };
+
+        // Update when chat opens or new messages arrive, with a small delay to allow DOM to render
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(updateCanvas, 300);
+
+        return () => clearTimeout(timeoutRef.current);
+    }, [isOpen, messages.length]);
 
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
 
@@ -149,7 +183,7 @@ const ChatBotDesktop = ({
     };
 
     return (
-        <div className={`fixed bottom-4 right-16 w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+        <div ref={containerRef} className={`fixed bottom-4 right-16 w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
             {/* Header */}
             <div className={`bg-transparent p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
                 <div className="flex items-center gap-3">
@@ -239,28 +273,39 @@ const ChatBotDesktop = ({
                     </div>
                 )}
 
-                <form onSubmit={handleSendMessage} className="flex items-center gap-3">
-                    <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => { if (e.target.files[0]) setSelectedFile(e.target.files[0]); }} />
-                    <button type="button" onClick={() => fileInputRef.current.click()} className="text-gray-400 hover:text-white transition-colors"><Paperclip size={24} strokeWidth={1.5} /></button>
-
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            placeholder="Escribe un mensaje..."
-                            className={`w-full bg-gray-100 border-transparent text-gray-900 dark:bg-[#1c1c1e]/50 dark:border-white/10 dark:text-white dark:placeholder-gray-500 border rounded-full px-5 py-3 text-[15px] focus:outline-none focus:ring-2 focus:ring-white/5 transition-all backdrop-blur-md`}
-                        />
-                        <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`absolute right-4 top-3.5 ${showEmojiPicker ? 'text-blue-500' : 'text-gray-400'}`}><Smile size={20} /></button>
+                <div className="flex items-center justify-center w-full px-2">
+                    <div className="w-full max-w-[320px] flex items-center gap-2 group">
+                        <div className="flex-1">
+                            <LiquidGlassInput
+                                domCanvas={localCanvas}
+                                pageRef={containerRef}
+                                isDarkMode={isDarkMode}
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                placeholder="Escribe un mensaje..."
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSendMessage(e);
+                                    }
+                                }}
+                                className="!h-12 !text-sm"
+                            />
+                        </div>
+                        <div className="w-[48px] h-[48px] shrink-0">
+                            <LiquidActionButton
+                                domCanvas={localCanvas}
+                                pageRef={containerRef}
+                                isDarkMode={isDarkMode}
+                                onClick={handleSendMessage}
+                                disabled={!inputValue.trim() && !selectedFile}
+                                className={!inputValue.trim() && !selectedFile ? "opacity-50 pointer-events-none" : ""}
+                            >
+                                <ArrowUp size={20} strokeWidth={2.5} className={!inputValue.trim() && !selectedFile ? "text-gray-500 rotate-90" : "text-black dark:text-white rotate-90"} />
+                            </LiquidActionButton>
+                        </div>
                     </div>
-
-                    <button
-                        type="submit"
-                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${inputValue.trim() || selectedFile ? 'bg-white text-black scale-105 shadow-lg' : 'bg-[#1c1c1e]/50 text-gray-500'}`}
-                    >
-                        {inputValue.trim() || selectedFile ? <ArrowUp size={22} strokeWidth={2.5} /> : <Mic size={22} strokeWidth={2} />}
-                    </button>
-                </form>
+                </div>
             </div>
         </div>
     );
