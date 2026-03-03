@@ -206,13 +206,20 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
 
     let lastDomCanvas: HTMLCanvasElement | null | undefined = undefined;
     let lastImageUrl: string | undefined = undefined;
+    let lastMapVersion = -1;
+
     const checkAndUpdateTexture = () => {
       const currentDomCanvas = domCanvasRef.current;
       const currentImageUrl = imageUrlRef.current;
 
       if (currentDomCanvas) {
-        updateTexture(currentDomCanvas);
-      } else if (currentImageUrl !== lastImageUrl) {
+        // @ts-ignore
+        const currentVersion = currentDomCanvas.__mapVersion;
+        if (currentVersion === undefined || currentVersion !== lastMapVersion) {
+          lastMapVersion = currentVersion;
+          updateTexture(currentDomCanvas);
+        }
+      } else if (!currentDomCanvas && currentImageUrl !== lastImageUrl) {
         lastImageUrl = currentImageUrl;
         if (currentImageUrl) {
           const img = new Image();
@@ -242,12 +249,6 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
       }
 
       const currentTime = (performance.now() - startTime) / 1000;
-
-      const rect = canvas.parentElement!.getBoundingClientRect();
-      if (rect.width !== canvas.width || rect.height !== canvas.height) {
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-      }
 
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -496,14 +497,14 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
                 format,
                 blend: {
                   color: {
-                    srcFactor: 'src-alpha',
-                    dstFactor: 'one-minus-src-alpha',
-                    operation: 'add',
+                    srcFactor: 'src-alpha' as GPUBlendFactor,
+                    dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
+                    operation: 'add' as GPUBlendOperation,
                   },
                   alpha: {
-                    srcFactor: 'one',
-                    dstFactor: 'one-minus-src-alpha',
-                    operation: 'add',
+                    srcFactor: 'one' as GPUBlendFactor,
+                    dstFactor: 'one-minus-src-alpha' as GPUBlendFactor,
+                    operation: 'add' as GPUBlendOperation,
                   }
                 }
               }
@@ -580,15 +581,20 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
           createBindGroup();
         };
 
-        let lastDomCanvas: HTMLCanvasElement | null | undefined = undefined;
         let lastImageUrl: string | undefined = undefined;
+        let lastMapVersion = -1;
 
         const checkAndUpdateTexture = () => {
           const currentDomCanvas = domCanvasRef.current;
           const currentImageUrl = imageUrlRef.current;
 
           if (currentDomCanvas) {
-            updateTexture(currentDomCanvas);
+            // @ts-ignore
+            const currentVersion = currentDomCanvas.__mapVersion;
+            if (currentVersion === undefined || currentVersion !== lastMapVersion) {
+              lastMapVersion = currentVersion;
+              updateTexture(currentDomCanvas);
+            }
           } else if (!currentDomCanvas && currentImageUrl !== lastImageUrl) {
             lastImageUrl = currentImageUrl;
             if (currentImageUrl) {
@@ -619,12 +625,6 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
           }
 
           const currentTime = (performance.now() - startTime) / 1000;
-
-          const rect = canvas.parentElement!.getBoundingClientRect();
-          if (rect.width !== canvas.width || rect.height !== canvas.height) {
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-          }
 
           const currentDomCanvas = domCanvasRef.current;
           checkAndUpdateTexture();
@@ -660,8 +660,8 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
             colorAttachments: [{
               view: textureView,
               clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-              loadOp: 'clear',
-              storeOp: 'store',
+              loadOp: 'clear' as GPULoadOp,
+              storeOp: 'store' as GPUStoreOp,
             }],
           };
           const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);

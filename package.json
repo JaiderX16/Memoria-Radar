@@ -15,7 +15,6 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",
-    "cristal-liquido": "file:../CristalLiquidoButtonOnlyButton",
     "date-fns": "^4.1.0",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",

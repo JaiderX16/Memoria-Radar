@@ -99,15 +99,22 @@ export default function Mapa({
 
         const oc = offscreenCanvasRef.current;
 
+        // Scale down the offscreen canvas for performance on low-end devices
+        // The liquid glass relies on blur, so a low-res texture works perfectly
+        // and cuts CPU/GPU memory bandwidth by 75%
+        const SCALE = 0.5;
+        const targetWidth = Math.floor(mapCanvas.width * SCALE);
+        const targetHeight = Math.floor(mapCanvas.height * SCALE);
+
         // Only resize if dimensions changed
-        if (oc.width !== mapCanvas.width || oc.height !== mapCanvas.height) {
-          oc.width = mapCanvas.width;
-          oc.height = mapCanvas.height;
+        if (oc.width !== targetWidth || oc.height !== targetHeight) {
+          oc.width = targetWidth;
+          oc.height = targetHeight;
           offscreenCtxRef.current = null; // force re-acquire context
         }
 
         if (!offscreenCtxRef.current) {
-          offscreenCtxRef.current = oc.getContext('2d');
+          offscreenCtxRef.current = oc.getContext('2d', { alpha: false, willReadFrequently: true });
         }
         if (!offscreenCtxRef.current) return;
 
@@ -119,7 +126,10 @@ export default function Mapa({
         const bgColor = starrySky || darkMode ? '#000000' : '#f3f4f6';
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, oc.width, oc.height);
-        ctx.drawImage(mapCanvas, 0, 0);
+        ctx.drawImage(mapCanvas, 0, 0, mapCanvas.width, mapCanvas.height, 0, 0, oc.width, oc.height);
+
+        // Track a version so the buttons only upload to GPU when pixels actually change
+        oc.__mapVersion = (oc.__mapVersion || 0) + 1;
 
         // Only call setState ONCE to pass the canvas reference
         // After that, the button reads updated pixels directly via gl.texImage2D
