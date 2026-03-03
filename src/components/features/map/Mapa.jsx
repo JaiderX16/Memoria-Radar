@@ -70,11 +70,24 @@ export default function Mapa({
   const [mapDomCanvas, setMapDomCanvas] = useState(null);
   const hasSetInitialRef = useRef(false);
 
+  // FPS Counter state
+  const [fps, setFps] = useState(0);
+  const fpsRef = useRef({ frames: 0, lastTime: performance.now() });
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     const handleRender = () => {
+      // Calulate FPS
+      fpsRef.current.frames++;
+      const now = performance.now();
+      if (now - fpsRef.current.lastTime >= 1000) {
+        setFps(Math.round((fpsRef.current.frames * 1000) / (now - fpsRef.current.lastTime)));
+        fpsRef.current.frames = 0;
+        fpsRef.current.lastTime = now;
+      }
+
       try {
         const mapCanvas = map.getCanvas();
         if (!mapCanvas || mapCanvas.width === 0 || mapCanvas.height === 0) return;
@@ -718,6 +731,18 @@ OBJETO: ${main.osm_id} (${main.type})
                 <p>© CARTO, © OpenStreetMap contributors</p>
               </TooltipContent>
             </Tooltip>
+          </div>
+
+          {/* FPS Counter */}
+          <div className="absolute top-20 left-4 z-50 pointer-events-none">
+            <div className={`px-2 py-1 rounded-md text-xs font-mono font-bold backdrop-blur-md border shadow-lg ${fps >= 30
+              ? 'bg-green-500/20 text-green-600 border-green-500/30'
+              : fps >= 15
+                ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
+                : 'bg-red-500/20 text-red-600 border-red-500/30'
+              }`}>
+              {fps} FPS
+            </div>
           </div>
 
           {/* Marcador de Ubicación del Usuario - Estilo Apple Maps */}
