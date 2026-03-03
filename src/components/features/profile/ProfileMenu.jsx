@@ -5,6 +5,7 @@ import {
     UserCircle, Save, Plus, Map
 } from 'lucide-react';
 import UserAvatar from './UserAvatar';
+import { LiquidGooToggle } from '../../../buttons/LiquidGooToggle';
 
 const SubMenuHeader = ({ title, onBack, theme }) => (
     <div className={`p-6 pt-10 md:pt-6 pb-2 flex items-center gap-4 ${theme.text}`}>
@@ -295,12 +296,15 @@ const ProfileMenu = ({ user, onClose, onLogout, isDarkMode, toggleTheme, theme, 
                                         <span className={`block text-[10px] font-medium opacity-50`}>{showTools ? 'Visible' : 'Oculto'}</span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setShowTools(!showTools)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${showTools ? 'bg-blue-600' : 'bg-gray-300 dark:bg-zinc-700'}`}
-                                >
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showTools ? 'translate-x-6' : 'translate-x-1'}`} />
-                                </button>
+                                <div className="relative flex items-center justify-center w-14 h-8 overflow-visible z-[100] mr-[-12px]">
+                                    <LiquidGooToggle
+                                        checked={showTools}
+                                        onChange={(val) => setShowTools(val)}
+                                        hideConfigButton={true}
+                                        scale={0.35}
+                                        className="!p-0"
+                                    />
+                                </div>
                             </div>
 
                             <MenuItem icon={UserCircle} label="Mi Perfil" subLabel="Editar datos, foto y seguridad" action={() => setView('profile')} />
