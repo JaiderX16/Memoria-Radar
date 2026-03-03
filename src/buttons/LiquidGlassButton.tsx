@@ -96,15 +96,12 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         }
         roundedBox = pow(roundedBox, 6.0);
 
-        // PILL EXCLUSIVE OPTIMIZATION: Hollow out the center of the pill
-        float coreMask = 1.0;
-        if (u_shapeType == 0) {
-            coreMask = smoothstep(0.05, 0.45, roundedBox);
-            // Fast rejection for the center of the pill to save GPU processing
-            if (coreMask <= 0.0) {
-                fragColor = vec4(0.0);
-                return;
-            }
+        // OPTIMIZATION: Hollow out the center of the shape (pill and circle)
+        float coreMask = smoothstep(0.05, 0.45, roundedBox);
+        // Fast rejection for the center to save GPU processing
+        if (coreMask <= 0.0) {
+            fragColor = vec4(0.0);
+            return;
         }
 
         float rb1 = clamp((1.0 - roundedBox * 0.9) * 5.0, 0.0, 1.0);
@@ -146,10 +143,22 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         fragColor /= 5.0;
 
         float gradient = clamp((m2.y + 0.5), 0.0, 1.0) * 0.5 + clamp((-m2.y + 0.5) * rb3, 0.0, 1.0);
-        vec4 lighting = clamp(fragColor + vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.25, 0.0, 1.0);
-        lighting -= u_pressed * 0.15; 
+        
+        // Premium Apple-style glass lighting (brighter, less muddy shadows)
+        vec4 lighting = clamp(fragColor + vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.1, 0.0, 1.0);
+        
+        // Add a subtle glossy edge halo instead of dark shadows
+        float edgeHighlight = smoothstep(0.7, 1.0, roundedBox) * 0.15;
+        lighting.rgb += vec3(edgeHighlight);
+
+        lighting -= u_pressed * 0.1; 
 
         float alpha = (1.0 - smoothstep(0.95, 1.0, roundedBox)) * coreMask;
+        
+        // Very crisp external lip reflection
+        float border = smoothstep(0.94, 0.97, roundedBox) - smoothstep(0.97, 1.0, roundedBox);
+        lighting.rgb += vec3(border * 0.6);
+
         fragColor = vec4(lighting.rgb, alpha);
       }
 

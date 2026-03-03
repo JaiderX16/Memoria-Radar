@@ -906,7 +906,7 @@ OBJETO: ${main.osm_id} (${main.type})
               domCanvas={mapDomCanvas || domCanvas}
               pageRef={containerRef}
               isDarkMode={darkMode}
-              className="w-14 h-14"
+              className="w-12 h-12"
             >
               <Search size={20} strokeWidth={2.5} />
             </LiquidActionButton>
@@ -925,7 +925,7 @@ OBJETO: ${main.osm_id} (${main.type})
                 domCanvas={mapDomCanvas || domCanvas}
                 pageRef={containerRef}
                 isDarkMode={darkMode}
-                className={`w-14 h-14 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
+                className={`w-12 h-12 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
               >
                 <Globe
                   size={20}
@@ -949,7 +949,7 @@ OBJETO: ${main.osm_id} (${main.type})
                 domCanvas={mapDomCanvas || domCanvas}
                 pageRef={containerRef}
                 isDarkMode={darkMode}
-                className={`w-14 h-14 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
+                className={`w-12 h-12 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
               >
                 {isAddingPoint ? (
                   <X size={20} strokeWidth={2.5} className="text-red-500" />

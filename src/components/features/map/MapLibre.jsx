@@ -669,8 +669,8 @@ function MarkerLabel({
 const positionClasses = {
     "top-left": "top-2 left-2",
     "top-right": "top-2 right-2",
-    "bottom-left": "bottom-2 left-2",
-    "bottom-right": "bottom-5 right-4",
+    "bottom-left": "bottom-24 left-2",
+    "bottom-right": "bottom-24 right-4",
 };
 
 function ControlGroup({ children, domCanvas, pageRef, isDarkMode }) {
@@ -699,7 +699,7 @@ function ControlButton({
             domCanvas={domCanvas}
             pageRef={pageRef}
             isDarkMode={isDarkMode}
-            className={cn("w-10 h-10", className, disabled && "opacity-50 cursor-not-allowed")}
+            className={cn("w-12 h-12", className, disabled && "opacity-50 cursor-not-allowed")}
         >
             {children}
         </LiquidActionButton>
@@ -811,11 +811,11 @@ function MapControls({
             // Se queda en la misma posición visual que 'half' pero se oculta detrás del chat (z-1000)
             dynamicPositionClass = "bottom-[48vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[900] opacity-0 pointer-events-none";
         } else {
-            dynamicPositionClass = "bottom-5 right-6 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
+            dynamicPositionClass = "bottom-24 right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
         }
     } else if (position === "bottom-right") {
-        // En desktop, siempre se queda abajo
-        dynamicPositionClass = "bottom-5 right-6 z-[1100]";
+        // En desktop, siempre se queda abajo arriba del input
+        dynamicPositionClass = "bottom-24 right-4 z-[1100]";
     }
 
     return (
@@ -900,7 +900,7 @@ function CompassButton({ onClick, domCanvas, pageRef, isDarkMode }) {
             domCanvas={domCanvas}
             pageRef={pageRef}
             isDarkMode={isDarkMode}
-            className="w-10 h-10"
+            className="w-12 h-12"
         >
             <div
                 ref={compassRef}

@@ -41,7 +41,8 @@ export const LiquidActionButton: React.FC<LiquidActionButtonProps> = ({
             onTouchEnd={() => setIsPressed(false)}
             className={cn(
                 "relative flex items-center justify-center transition-transform duration-200 active:scale-95 group",
-                "w-10 h-10 rounded-full",
+                "w-12 h-12 rounded-full",
+                isDarkMode ? "bg-white/5 backdrop-blur-sm" : "bg-black/5 backdrop-blur-sm",
                 className
             )}
             data-html2canvas-ignore="true"

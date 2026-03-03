@@ -398,7 +398,7 @@ function App() {
             />
 
             {/* Bottom Search Bar (Apple Maps Style) */}
-            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[360px] z-[20] px-4 pointer-events-auto">
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-[360px] z-[20] px-4 pointer-events-auto">
                 <LiquidGlassInput
                     domCanvas={domCanvas}
                     pageRef={pageRef}
