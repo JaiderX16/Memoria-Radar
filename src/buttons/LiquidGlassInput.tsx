@@ -23,7 +23,7 @@ export const LiquidGlassInput: React.FC<LiquidGlassInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <div className={`relative w-full h-16 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.3)] group ${className}`}>
+    <div className={`relative w-full h-16 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.3)] group ${isDarkMode ? 'bg-white/5 backdrop-blur-sm' : 'bg-black/5 backdrop-blur-sm'} ${className}`}>
       <div className={`absolute inset-0 transition-opacity duration-500 overflow-hidden rounded-[inherit] ${domCanvas ? 'opacity-100' : 'opacity-0'}`}>
         <LiquidGlassButtonWebGL
           domCanvas={domCanvas}

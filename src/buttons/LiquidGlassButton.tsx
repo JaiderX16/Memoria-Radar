@@ -96,6 +96,17 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         }
         roundedBox = pow(roundedBox, 6.0);
 
+        // PILL EXCLUSIVE OPTIMIZATION: Hollow out the center of the pill
+        float coreMask = 1.0;
+        if (u_shapeType == 0) {
+            coreMask = smoothstep(0.05, 0.45, roundedBox);
+            // Fast rejection for the center of the pill to save GPU processing
+            if (coreMask <= 0.0) {
+                fragColor = vec4(0.0);
+                return;
+            }
+        }
+
         float rb1 = clamp((1.0 - roundedBox * 0.9) * 5.0, 0.0, 1.0);
         float rb2 = clamp((0.95 - roundedBox * 0.9) * 10.0, 0.0, 1.0) - clamp(pow(0.9 - roundedBox * 0.9, 1.0) * 10.0, 0.0, 1.0);
         float rb3 = clamp((1.5 - roundedBox * 1.1) * 2.0, 0.0, 1.0) - clamp(pow(1.0 - roundedBox * 1.1, 1.0) * 2.0, 0.0, 1.0);
@@ -138,7 +149,7 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         vec4 lighting = clamp(fragColor + vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.25, 0.0, 1.0);
         lighting -= u_pressed * 0.15; 
 
-        float alpha = 1.0 - smoothstep(0.95, 1.0, roundedBox);
+        float alpha = (1.0 - smoothstep(0.95, 1.0, roundedBox)) * coreMask;
         fragColor = vec4(lighting.rgb, alpha);
       }
 
