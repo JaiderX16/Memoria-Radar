@@ -10,6 +10,7 @@ import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import ChatBot from '@/components/features/chat/ChatBot';
 import { useFiltrosAvanzados } from '@/hooks/useFiltrosAvanzados';
 import { getPlaces, getEvents, createPlace, createEvent } from '@/services/api';
+import LiquidActionButton from '@/buttons/LiquidActionButton';
 
 
 function App() {
@@ -246,64 +247,10 @@ function App() {
 
     // Captura el fondo para el efecto Liquid Glass
     useEffect(() => {
-        const captureBackground = async () => {
-            if (!pageRef.current) return;
-
-            // Esperar a que los elementos (especialmente el mapa) se rendericen
-            // MapLibre con preserveDrawingBuffer: true permitirá la captura
-            setTimeout(async () => {
-                try {
-                    console.log("Capturing background for liquid effect...");
-
-                    // Aseguramos el color de fondo basado en el tema
-                    const bgColor = darkMode ? '#000000' : '#f3f4f6';
-
-                    // Buscamos el canvas real del mapa (MapLibreGL usa .maplibregl-canvas)
-                    const mapCanvas = pageRef.current.querySelector('.maplibregl-canvas');
-                    let targetCanvas;
-
-                    if (mapCanvas) {
-                        try {
-                            targetCanvas = document.createElement('canvas');
-                            targetCanvas.width = mapCanvas.width;
-                            targetCanvas.height = mapCanvas.height;
-                            const ctx = targetCanvas.getContext('2d');
-                            ctx.drawImage(mapCanvas, 0, 0);
-                            console.log("Map WebGL background captured directly.");
-                        } catch (e) {
-                            console.error("Direct map capture failed:", e);
-                        }
-                    }
-
-                    if (!targetCanvas) {
-                        // Fallback
-                        targetCanvas = await html2canvas(pageRef.current, {
-                            scale: window.devicePixelRatio || 1,
-                            useCORS: true,
-                            backgroundColor: bgColor,
-                            scrollY: -window.scrollY,
-                            ignoreElements: (element) => {
-                                if (!element || !element.classList) return false;
-                                return element.classList.contains('ignore-capture') ||
-                                    element.hasAttribute('data-html2canvas-ignore');
-                            }
-                        });
-                    }
-
-                    setDomCanvas(targetCanvas);
-                    console.log("Background captured successfully.");
-                } catch (error) {
-                    console.error('Error capturing background:', error);
-                }
-            }, 1500); // 1.5s delay
-        };
-
-        captureBackground();
-
-        // Opcional: Recapturar si el tema cambia o tras un tiempo largo
-        // window.addEventListener('recapture-liquid', captureBackground);
-        // return () => window.removeEventListener('recapture-liquid', captureBackground);
-    }, [mapTheme, darkMode]); // Re-captura si el tema cambia
+        // Obsolete: html2canvas has been removed.
+        // We now receive the WebGL offscreen canvas directly from `Mapa.jsx` via the `onCanvasReady` prop
+        // which gives us 60fps blurry backgrounds without dropping performance.
+    }, [mapTheme, darkMode]);
 
     return (
         <div vaul-drawer-wrapper="" ref={pageRef} className="relative w-full h-[100dvh] overflow-hidden bg-gray-100 dark:bg-black">
@@ -330,6 +277,8 @@ function App() {
                 toggleDarkMode={toggleDarkMode}
                 domCanvas={domCanvas}
                 pageRef={pageRef}
+                onCanvasReady={setDomCanvas}
+                userRole={userRole}
             />
 
             {/* Top Bar Container */}
@@ -337,12 +286,16 @@ function App() {
                 {/* Left: Menu Button Container */}
                 <div className="w-[52px] pointer-events-auto">
                     {!isSidebarOpen && (
-                        <button
+                        <LiquidActionButton
                             onClick={() => setIsSidebarOpen(true)}
-                            className="p-3 bg-white/90 dark:bg-black/90 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 text-gray-700 dark:text-white hover:scale-105 transition-all flex items-center justify-center w-[52px] h-[52px]"
+                            className="text-gray-700 dark:text-white"
+                            shape="circle"
+                            isDarkMode={darkMode}
+                            domCanvas={domCanvas}
+                            pageRef={pageRef}
                         >
                             <Menu size={24} />
-                        </button>
+                        </LiquidActionButton>
                     )}
                 </div>
 

@@ -41,7 +41,9 @@ export default function Mapa({
   darkMode,
   toggleDarkMode,
   domCanvas,
-  pageRef
+  pageRef,
+  onCanvasReady,
+  userRole
 }) {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
@@ -136,6 +138,9 @@ export default function Mapa({
         if (!hasSetInitialRef.current) {
           hasSetInitialRef.current = true;
           setMapDomCanvas(oc);
+          if (onCanvasReady) {
+            onCanvasReady(oc);
+          }
         }
       } catch (e) {
         // Silently fail
@@ -911,49 +916,53 @@ OBJETO: ${main.osm_id} (${main.type})
           </TooltipContent>
         </Tooltip>
 
-        {/* Botón de Extracción de Datos (PRUEBAS) */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <LiquidActionButton
-              onClick={toggleExtractingMode}
-              domCanvas={mapDomCanvas || domCanvas}
-              pageRef={containerRef}
-              isDarkMode={darkMode}
-              className={`w-14 h-14 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
-            >
-              <Globe
-                size={20}
-                className={isExtracting ? 'animate-spin' : ''}
-                strokeWidth={2.5}
-              />
-            </LiquidActionButton>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
-            <p>{isExtractingMode ? 'Cancelar Extracción' : 'Pruebas: Extraer Datos'}</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Botón de Extracción de Datos (PRUEBAS) - Solo Administradores y Negocios */}
+        {(userRole === 'admin' || userRole === 'business') && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <LiquidActionButton
+                onClick={toggleExtractingMode}
+                domCanvas={mapDomCanvas || domCanvas}
+                pageRef={containerRef}
+                isDarkMode={darkMode}
+                className={`w-14 h-14 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
+              >
+                <Globe
+                  size={20}
+                  className={isExtracting ? 'animate-spin' : ''}
+                  strokeWidth={2.5}
+                />
+              </LiquidActionButton>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+              <p>{isExtractingMode ? 'Cancelar Extracción' : 'Pruebas: Extraer Datos'}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Botón flotante para agregar puntos de interés */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <LiquidActionButton
-              onClick={toggleAddingMode}
-              domCanvas={mapDomCanvas || domCanvas}
-              pageRef={containerRef}
-              isDarkMode={darkMode}
-              className={`w-14 h-14 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
-            >
-              {isAddingPoint ? (
-                <X size={20} strokeWidth={2.5} className="text-red-500" />
-              ) : (
-                <Plus size={20} strokeWidth={2.5} className="text-green-600 dark:text-green-400" />
-              )}
-            </LiquidActionButton>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
-            <p>{isAddingPoint ? 'Cancelar' : 'Agregar Punto'}</p>
-          </TooltipContent>
-        </Tooltip>
+        {(userRole === 'admin' || userRole === 'business') && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <LiquidActionButton
+                onClick={toggleAddingMode}
+                domCanvas={mapDomCanvas || domCanvas}
+                pageRef={containerRef}
+                isDarkMode={darkMode}
+                className={`w-14 h-14 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
+              >
+                {isAddingPoint ? (
+                  <X size={20} strokeWidth={2.5} className="text-red-500" />
+                ) : (
+                  <Plus size={20} strokeWidth={2.5} className="text-green-600 dark:text-green-400" />
+                )}
+              </LiquidActionButton>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+              <p>{isAddingPoint ? 'Cancelar' : 'Agregar Punto'}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Modal de Búsqueda Inmersivo */}
