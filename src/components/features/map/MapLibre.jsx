@@ -14,7 +14,7 @@ import { createPortal } from "react-dom";
 import { X, Minus, Plus, Locate, Maximize, Loader2, Navigation } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "@/utils/cn";
-import { LiquidActionButton } from '@/components/LiquidGlass';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 
 // --- Tooltip Components ---
 

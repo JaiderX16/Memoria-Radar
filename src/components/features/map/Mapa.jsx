@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   Map,
   MapMarker,
@@ -16,7 +16,7 @@ import FormularioLugar from '@/components/features/formulario/FormularioLugar';
 import ModalPin from './ModalPin';
 import SearchModal from '@/components/features/search/SearchModal';
 import Profile from '@/components/features/profile/Profile';
-import { LiquidActionButton } from '@/components/LiquidGlass';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 import stardustPattern from '@/assets/stardust.png';
 
 export default function Mapa({
@@ -61,6 +61,70 @@ export default function Mapa({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false); // Nuevo estado de carga
   const abortControllerRef = useRef(null);
+  // Real-time canvas capture for liquid glass refraction
+  // Uses a SINGLE persistent canvas updated every frame (no throttle)
+  // setState is called only ONCE to pass the initial reference
+  // The modified local LiquidGlassButton re-reads pixels every frame
+  const offscreenCanvasRef = useRef(null);
+  const offscreenCtxRef = useRef(null);
+  const [mapDomCanvas, setMapDomCanvas] = useState(null);
+  const hasSetInitialRef = useRef(false);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const handleRender = () => {
+      try {
+        const mapCanvas = map.getCanvas();
+        if (!mapCanvas || mapCanvas.width === 0 || mapCanvas.height === 0) return;
+
+        // Lazy-init the persistent offscreen canvas
+        if (!offscreenCanvasRef.current) {
+          offscreenCanvasRef.current = document.createElement('canvas');
+        }
+
+        const oc = offscreenCanvasRef.current;
+
+        // Only resize if dimensions changed
+        if (oc.width !== mapCanvas.width || oc.height !== mapCanvas.height) {
+          oc.width = mapCanvas.width;
+          oc.height = mapCanvas.height;
+          offscreenCtxRef.current = null; // force re-acquire context
+        }
+
+        if (!offscreenCtxRef.current) {
+          offscreenCtxRef.current = oc.getContext('2d');
+        }
+        if (!offscreenCtxRef.current) return;
+
+        // Fill with the actual background color first, then composite the map on top
+        // This is critical for globe mode: the map canvas renders the globe with
+        // transparent pixels for the space/sky area. The CSS bg-black shows through
+        // visually, but the captured canvas must include that background explicitly.
+        const ctx = offscreenCtxRef.current;
+        const bgColor = starrySky || darkMode ? '#000000' : '#f3f4f6';
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, oc.width, oc.height);
+        ctx.drawImage(mapCanvas, 0, 0);
+
+        // Only call setState ONCE to pass the canvas reference
+        // After that, the button reads updated pixels directly via gl.texImage2D
+        if (!hasSetInitialRef.current) {
+          hasSetInitialRef.current = true;
+          setMapDomCanvas(oc);
+        }
+      } catch (e) {
+        // Silently fail
+      }
+    };
+
+    map.on('render', handleRender);
+
+    return () => {
+      map.off('render', handleRender);
+    };
+  }, [mapRef.current]);
 
   // Solicitar ubicación automáticamente al cargar
   useEffect(() => {
@@ -627,8 +691,8 @@ OBJETO: ${main.osm_id} (${main.type})
             showLocate
             onLocate={(coords) => setUserLocation(coords)}
             chatState={chatState}
-            domCanvas={domCanvas}
-            pageRef={pageRef}
+            domCanvas={mapDomCanvas || domCanvas}
+            pageRef={containerRef}
             isDarkMode={darkMode}
           >
             <ControlGroup>
@@ -799,8 +863,8 @@ OBJETO: ${main.osm_id} (${main.type})
           <TooltipTrigger asChild>
             <LiquidActionButton
               onClick={() => setIsSearchOpen(true)}
-              domCanvas={domCanvas}
-              pageRef={pageRef}
+              domCanvas={mapDomCanvas || domCanvas}
+              pageRef={containerRef}
               isDarkMode={darkMode}
               className="w-14 h-14"
             >
@@ -817,8 +881,8 @@ OBJETO: ${main.osm_id} (${main.type})
           <TooltipTrigger asChild>
             <LiquidActionButton
               onClick={toggleExtractingMode}
-              domCanvas={domCanvas}
-              pageRef={pageRef}
+              domCanvas={mapDomCanvas || domCanvas}
+              pageRef={containerRef}
               isDarkMode={darkMode}
               className={`w-14 h-14 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
             >
@@ -839,8 +903,8 @@ OBJETO: ${main.osm_id} (${main.type})
           <TooltipTrigger asChild>
             <LiquidActionButton
               onClick={toggleAddingMode}
-              domCanvas={domCanvas}
-              pageRef={pageRef}
+              domCanvas={mapDomCanvas || domCanvas}
+              pageRef={containerRef}
               isDarkMode={darkMode}
               className={`w-14 h-14 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
             >
