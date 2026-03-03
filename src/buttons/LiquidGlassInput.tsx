@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LiquidGlassButton } from './LiquidGlassButton';
+import { LiquidGlassButtonWebGL } from './LiquidGlassButton';
 
 export interface LiquidGlassInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'shape'> {
   domCanvas: HTMLCanvasElement | null;
@@ -24,12 +24,12 @@ export const LiquidGlassInput: React.FC<LiquidGlassInputProps> = ({
 
   return (
     <div className={`relative w-full h-16 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.3)] group ${className}`}>
-      <div className={`absolute inset-0 transition-opacity duration-500 ${domCanvas ? 'opacity-100' : 'opacity-0'}`}>
-        <LiquidGlassButton 
-          domCanvas={domCanvas} 
-          pageRef={pageRef} 
-          shape="pill" 
-          isPressed={isFocused} 
+      <div className={`absolute inset-0 transition-opacity duration-500 overflow-hidden rounded-[inherit] ${domCanvas ? 'opacity-100' : 'opacity-0'}`}>
+        <LiquidGlassButtonWebGL
+          domCanvas={domCanvas}
+          pageRef={pageRef}
+          shape="pill"
+          isPressed={isFocused}
         />
       </div>
       <div className={`absolute inset-0 flex items-center justify-between px-6 border rounded-full transition-colors duration-500 pointer-events-none ${isFocused ? (isDarkMode ? 'border-white/40' : 'border-black/40') : (isDarkMode ? 'border-white/20' : 'border-black/10')}`}>

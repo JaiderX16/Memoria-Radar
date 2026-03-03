@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
-import { Menu } from 'lucide-react';
+import { Menu, Search, Mic, User } from 'lucide-react';
 import Mapa from '@/components/features/map/Mapa';
 import Sidebar from '@/components/features/sidebar/user/UserSidebar';
 import SidebarBusiness from '@/components/layout/Sidebar/business/BusinessSidebar';
@@ -11,6 +11,7 @@ import ChatBot from '@/components/features/chat/ChatBot';
 import { useFiltrosAvanzados } from '@/hooks/useFiltrosAvanzados';
 import { getPlaces, getEvents, createPlace, createEvent } from '@/services/api';
 import LiquidActionButton from '@/buttons/LiquidActionButton';
+import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
 
 
 function App() {
@@ -395,6 +396,32 @@ function App() {
                 onClose={handleFormClose}
                 onSubmit={handleSubmitLugar}
             />
+
+            {/* Bottom Search Bar (Apple Maps Style) */}
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[360px] z-[20] px-4 pointer-events-auto">
+                <LiquidGlassInput
+                    domCanvas={domCanvas}
+                    pageRef={pageRef}
+                    isDarkMode={darkMode}
+                    placeholder="Encontrar en SPOT"
+                    leftIcon={<Search size={22} className={darkMode ? "text-white" : "text-gray-500"} />}
+                    rightIcon={
+                        <div className="flex items-center gap-3">
+                            <Mic size={22} className={darkMode ? "text-white" : "text-gray-500"} />
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-400 to-yellow-500 flex items-center justify-center p-[2px] shadow-md border border-white/20">
+                                {user?.avatar ? (
+                                    <img src={user.avatar} alt="User" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full rounded-full bg-black/20 flex items-center justify-center">
+                                        <User size={16} className="text-white" />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    }
+                    onClick={() => setIsSearchOpen(true)}
+                />
+            </div>
         </div>
     );
 }

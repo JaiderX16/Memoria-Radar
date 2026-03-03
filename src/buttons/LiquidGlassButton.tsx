@@ -242,11 +242,22 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
     }, { threshold: 0 });
     observer.observe(canvas);
 
+    let lastRenderTime = 0;
+    const TARGET_FPS = 30;
+    const frameInterval = 1000 / TARGET_FPS;
+
     const render = () => {
+      animationFrameId = requestAnimationFrame(render);
+
       if (!isVisible) {
-        animationFrameId = requestAnimationFrame(render);
         return;
       }
+
+      const now = performance.now();
+      if (now - lastRenderTime < frameInterval) {
+        return;
+      }
+      lastRenderTime = now;
 
       const currentTime = (performance.now() - startTime) / 1000;
 
@@ -286,7 +297,6 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
       gl.uniform1i(uniforms.texture, 0);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      animationFrameId = requestAnimationFrame(render);
     };
 
     render();
@@ -616,13 +626,24 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
         }, { threshold: 0 });
         observer.observe(canvas);
 
+        let lastRenderTime = 0;
+        const TARGET_FPS = 30;
+        const frameInterval = 1000 / TARGET_FPS;
+
         const render = () => {
           if (!device || !context || !pipeline || !bindGroup) return;
 
+          animationFrameId = requestAnimationFrame(render);
+
           if (!isVisible) {
-            animationFrameId = requestAnimationFrame(render);
             return;
           }
+
+          const now = performance.now();
+          if (now - lastRenderTime < frameInterval) {
+            return;
+          }
+          lastRenderTime = now;
 
           const currentTime = (performance.now() - startTime) / 1000;
 
@@ -670,8 +691,6 @@ const LiquidGlassButtonWebGPU: React.FC<LiquidGlassButtonProps> = ({
           passEncoder.draw(4);
           passEncoder.end();
           device.queue.submit([commandEncoder.finish()]);
-
-          animationFrameId = requestAnimationFrame(render);
         };
 
         render();
