@@ -258,17 +258,39 @@ function App() {
                     // Aseguramos el color de fondo basado en el tema
                     const bgColor = darkMode ? '#000000' : '#f3f4f6';
 
-                    const canvas = await html2canvas(pageRef.current, {
-                        scale: 1, // Calidad original
-                        useCORS: true,
-                        backgroundColor: bgColor,
-                        scrollY: -window.scrollY,
-                        ignoreElements: (element) => {
-                            return element.classList.contains('ignore-capture') ||
-                                element.hasAttribute('data-html2canvas-ignore');
+                    // Buscamos el canvas real del mapa (MapLibreGL usa .maplibregl-canvas)
+                    const mapCanvas = pageRef.current.querySelector('.maplibregl-canvas');
+                    let targetCanvas;
+
+                    if (mapCanvas) {
+                        try {
+                            targetCanvas = document.createElement('canvas');
+                            targetCanvas.width = mapCanvas.width;
+                            targetCanvas.height = mapCanvas.height;
+                            const ctx = targetCanvas.getContext('2d');
+                            ctx.drawImage(mapCanvas, 0, 0);
+                            console.log("Map WebGL background captured directly.");
+                        } catch (e) {
+                            console.error("Direct map capture failed:", e);
                         }
-                    });
-                    setDomCanvas(canvas);
+                    }
+
+                    if (!targetCanvas) {
+                        // Fallback
+                        targetCanvas = await html2canvas(pageRef.current, {
+                            scale: window.devicePixelRatio || 1,
+                            useCORS: true,
+                            backgroundColor: bgColor,
+                            scrollY: -window.scrollY,
+                            ignoreElements: (element) => {
+                                if (!element || !element.classList) return false;
+                                return element.classList.contains('ignore-capture') ||
+                                    element.hasAttribute('data-html2canvas-ignore');
+                            }
+                        });
+                    }
+
+                    setDomCanvas(targetCanvas);
                     console.log("Background captured successfully.");
                 } catch (error) {
                     console.error('Error capturing background:', error);
