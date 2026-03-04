@@ -29,42 +29,25 @@ export const LiquidActionButton: React.FC<LiquidActionButtonProps> = ({
     imageUrl,
     ...props
 }) => {
-    const [isPressed, setIsPressed] = useState(false);
-
     return (
         <button
             onClick={onClick}
-            onMouseDown={() => setIsPressed(true)}
-            onMouseUp={() => setIsPressed(false)}
-            onMouseLeave={() => setIsPressed(false)}
-            onTouchStart={() => setIsPressed(true)}
-            onTouchEnd={() => setIsPressed(false)}
             className={cn(
                 "relative flex items-center justify-center transition-transform duration-200 active:scale-95 group",
                 "w-12 h-12 rounded-full",
-                isDarkMode ? "bg-white/5 backdrop-blur-sm" : "bg-black/5 backdrop-blur-sm",
+                isDarkMode ? "bg-white/10 backdrop-blur-md border-[0.5px] border-white/20" : "bg-black/5 backdrop-blur-md border-[0.5px] border-black/10",
                 className
             )}
-            data-html2canvas-ignore="true"
             {...props}
         >
-            <div className="absolute inset-0 z-0 pointer-events-none rounded-[inherit] overflow-hidden">
-                <LiquidGlassButtonWebGL
-                    domCanvas={domCanvas}
-                    pageRef={pageRef}
-                    shape={shape}
-                    isPressed={isPressed}
-                    imageUrl={imageUrl}
-                />
-            </div>
             <div className={cn(
                 "relative z-10 flex items-center justify-center transition-colors duration-300 drop-shadow-md",
-                isDarkMode ? "text-white" : "text-slate-800"
+                isDarkMode ? "text-white" : "text-gray-900"
             )}>
                 {children}
             </div>
-            {/* Glossy overlay or border */}
-            <div className="absolute inset-0 rounded-[inherit] border border-white/20 dark:border-white/10 pointer-events-none group-hover:border-blue-500/50 transition-colors duration-300" />
+            {/* Simple smooth overlay on hover */}
+            <div className="absolute inset-0 rounded-[inherit] pointer-events-none transition-colors duration-300 group-hover:bg-black/5 dark:group-hover:bg-white/5" />
         </button>
     );
 };

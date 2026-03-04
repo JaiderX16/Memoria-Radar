@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const UserAvatar = ({ name, image, size = "md", className = "", onClick }) => {
+    const [imgError, setImgError] = useState(false);
     const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'US';
     const sizeClasses = {
         sm: "w-8 h-8 text-xs",
@@ -15,8 +16,13 @@ const UserAvatar = ({ name, image, size = "md", className = "", onClick }) => {
             onClick={onClick}
             className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-black tracking-wider border border-white/20 dark:border-white/10 transition-transform hover:scale-105 active:scale-95 cursor-pointer overflow-hidden relative bg-transparent backdrop-blur-sm shadow-none ${className}`}
         >
-            {image ? (
-                <img src={image} alt="Profile" className="w-full h-full object-cover" />
+            {image && !imgError ? (
+                <img
+                    src={image}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                />
             ) : (
                 initials
             )}

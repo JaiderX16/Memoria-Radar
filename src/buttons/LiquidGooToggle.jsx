@@ -4,9 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 // Conservamos el CSS original para asegurar que los filtros SVG, 
 // capas 3D y variables CSS funcionen de manera idéntica.
 const rawCSS = `
-@import url('https://unpkg.com/normalize.css') layer(normalize);
-
-@layer normalize, base, demo, toggle, transitions, debug;
+@layer base, demo, toggle, transitions, debug;
 
 @layer debug {
   .arrow {
@@ -114,246 +112,250 @@ const rawCSS = `
     --transition: 0.2s;
     --ease: ease-out;
   }
-  [data-pressed=true] .liquid__track {
-    min-height: 30px;
-  }
-  [data-bounce='true']:has(:is(button:active, [data-pressed="true"])) {
-    --transition: 0.6s;
-    --ease: linear(
-      0 0%, 0.6091 3.69%, 1.0259 7.24%, 1.1733 9.05%,
-      1.283 10.92%, 1.3562 12.87%, 1.3948 14.95%, 1.4014 16.03%,
-      1.3999 17.16%, 1.3731 19.64%, 1.3202 22.27%, 1.1394 29.39%,
-      1.0582 33.17%, 0.9943 37.45%, 0.9734 39.64%, 0.9593 41.92%,
-      0.9505 45.08%, 0.9517 48.7%, 0.9924 63.02%, 1.0046 71.2%,
-      1.0061 78.24%, 1 100%
-    );
-  }
-  .indicator--masked .mask {
-    translate: calc((var(--complete) / 100) * (100cqi - 60cqi - (0 * var(--border)))) -50%;
-    transition-property: height, width, margin, scale;
-    transition-duration: var(--transition);
-    transition-timing-function: var(--ease);
-    will-change: height, width, margin;
-  }
-  .wrapper {
-    clip-path: inset(0 0 0 0 round 100px);
-    filter: blur(6px);
-    transition: filter var(--transition) var(--ease);
-  }
-  [aria-pressed='true']:not([data-active='true']) .liquid__track {
-    left: calc(var(--border) * 6);
-  }
-  .liquid__track {
-    left: 0;
-    transition-property: height, width, filter, left;
-    transition-duration: var(--transition);
-    transition-timing-function: var(--ease);
-    translate: calc((var(--complete) / 100) * (100cqi - 100% - (6 * var(--border)))) -50%;
-  }
-  [data-mapped=false] .liquid__track {
-    transition-property: height, width, filter, left, background;
-    transition-duration: var(--transition), var(--transition), var(--transition), var(--transition), calc(var(--transition) * 0.5);
-    transition-timing-function: var(--ease), var(--ease), var(--ease), var(--ease), ease-out;
-  }
-  .indicator__liquid {
-    translate: calc((var(--complete) / 100) * (100cqi - 100% - (2 * var(--border)))) -50%;
-    transition-property: scale;
-    transition-duration: var(--transition);
-    transition-timing-function: var(--ease);
-  }
-  .indicator__liquid :is(.cover, .shadow) {
-    transition: opacity var(--transition) var(--ease);
-  }
-  [data-active='true'] .indicator--masked .mask,
-  .liquid-toggle:active .indicator--masked .mask {
-    height: calc((100% - (2 * var(--border))) * (1.65 - (var(--delta, 0) * 0.025)));
-    width: calc((60% - (2 * var(--border))) * (1.65 + (var(--delta, 0) * 0.025)));
-    margin-left: calc((60% - (2 * var(--border))) * ((.65 + (var(--delta, 0) * 0.025)) * -0.5));
-  }
-  [data-active='true'] .indicator__liquid,
-  .liquid-toggle:active .indicator__liquid {
-    scale: calc(1.65 + (var(--delta, 0) * 0.025)) calc(1.65 - (var(--delta, 0) * 0.025));
-  }
-  [data-active='true'] .wrapper,
-  .liquid-toggle:active .wrapper {
-    filter: blur(0px);
-  }
-  [data-active='true'] .indicator__liquid .shadow,
-  .liquid-toggle:active .indicator__liquid .shadow {
-    opacity: 1;
-  }
-  [data-active='true'] .indicator__liquid .cover,
-  .liquid-toggle:active .indicator__liquid .cover {
-    opacity: 0;
-  }
-  [data-active='true'] .indicator__liquid .liquid__track,
-  .liquid-toggle:active .indicator__liquid .liquid__track {
-    left: calc(var(--border) * 3);
-    height: calc((var(--height) * 1px) - (6 * var(--border)));
+  .liquid-toggle-container {
+    & [data-pressed=true] .liquid__track {
+      min-height: 30px;
+    }
+    & [data-bounce='true']:has(:is(button:active, [data-pressed="true"])) {
+      --transition: 0.6s;
+      --ease: linear(
+        0 0%, 0.6091 3.69%, 1.0259 7.24%, 1.1733 9.05%,
+        1.283 10.92%, 1.3562 12.87%, 1.3948 14.95%, 1.4014 16.03%,
+        1.3999 17.16%, 1.3731 19.64%, 1.3202 22.27%, 1.1394 29.39%,
+        1.0582 33.17%, 0.9943 37.45%, 0.9734 39.64%, 0.9593 41.92%,
+        0.9505 45.08%, 0.9517 48.7%, 0.9924 63.02%, 1.0046 71.2%,
+        1.0061 78.24%, 1 100%
+      );
+    }
+    & .indicator--masked .mask {
+      translate: calc((var(--complete) / 100) * (100cqi - 60cqi - (0 * var(--border)))) -50%;
+      transition-property: height, width, margin, scale;
+      transition-duration: var(--transition);
+      transition-timing-function: var(--ease);
+      will-change: height, width, margin;
+    }
+    & .wrapper {
+      clip-path: inset(0 0 0 0 round 100px);
+      filter: blur(6px);
+      transition: filter var(--transition) var(--ease);
+    }
+    & [aria-pressed='true']:not([data-active='true']) .liquid__track {
+      left: calc(var(--border) * 6);
+    }
+    & .liquid__track {
+      left: 0;
+      transition-property: height, width, filter, left;
+      transition-duration: var(--transition);
+      transition-timing-function: var(--ease);
+      translate: calc((var(--complete) / 100) * (100cqi - 100% - (6 * var(--border)))) -50%;
+    }
+    & [data-mapped=false] .liquid__track {
+      transition-property: height, width, filter, left, background;
+      transition-duration: var(--transition), var(--transition), var(--transition), var(--transition), calc(var(--transition) * 0.5);
+      transition-timing-function: var(--ease), var(--ease), var(--ease), var(--ease), ease-out;
+    }
+    & .indicator__liquid {
+      translate: calc((var(--complete) / 100) * (100cqi - 100% - (2 * var(--border)))) -50%;
+      transition-property: scale;
+      transition-duration: var(--transition);
+      transition-timing-function: var(--ease);
+    }
+    & .indicator__liquid :is(.cover, .shadow) {
+      transition: opacity var(--transition) var(--ease);
+    }
+    & [data-active='true'] .indicator--masked .mask,
+    & .liquid-toggle:active .indicator--masked .mask {
+      height: calc((100% - (2 * var(--border))) * (1.65 - (var(--delta, 0) * 0.025)));
+      width: calc((60% - (2 * var(--border))) * (1.65 + (var(--delta, 0) * 0.025)));
+      margin-left: calc((60% - (2 * var(--border))) * ((.65 + (var(--delta, 0) * 0.025)) * -0.5));
+    }
+    & [data-active='true'] .indicator__liquid,
+    & .liquid-toggle:active .indicator__liquid {
+      scale: calc(1.65 + (var(--delta, 0) * 0.025)) calc(1.65 - (var(--delta, 0) * 0.025));
+    }
+    & [data-active='true'] .wrapper,
+    & .liquid-toggle:active .wrapper {
+      filter: blur(0px);
+    }
+    & [data-active='true'] .indicator__liquid .shadow,
+    & .liquid-toggle:active .indicator__liquid .shadow {
+      opacity: 1;
+    }
+    & [data-active='true'] .indicator__liquid .cover,
+    & .liquid-toggle:active .indicator__liquid .cover {
+      opacity: 0;
+    }
+    & [data-active='true'] .indicator__liquid .liquid__track,
+    & .liquid-toggle:active .indicator__liquid .liquid__track {
+      left: calc(var(--border) * 3);
+      height: calc((var(--height) * 1px) - (6 * var(--border)));
+    }
   }
 }
 
 @layer toggle {
-  [data-mapped=false] .liquid-toggle {
-    --progress: round(down, var(--complete), 85);
-    --checked: hsl(
-      var(--hue, 144),
-      calc((8 + (var(--progress) / 85 * (92))) * 1%),
-      calc((81 - (var(--progress) / 85 * (81 - 43))) * 1%)
-    );
-    .indicator, .indicator--masked {
-      transition: background calc(var(--transition) * 0.5) ease-out;
+  .liquid-toggle-container {
+    & [data-mapped=false] .liquid-toggle {
+      --progress: round(down, var(--complete), 85);
+      --checked: hsl(
+        var(--hue, 144),
+        calc((8 + (var(--progress) / 85 * (92))) * 1%),
+        calc((81 - (var(--progress) / 85 * (81 - 43))) * 1%)
+      );
+      & .indicator, & .indicator--masked {
+        transition: background calc(var(--transition) * 0.5) ease-out;
+      }
+      & .liquid__shadow {
+        transition: box-shadow calc(var(--transition) * 0.5) ease-out;
+      }
     }
-    .liquid__shadow {
-      transition: box-shadow calc(var(--transition) * 0.5) ease-out;
+
+    & .liquid-toggle {
+      --unchecked: hsl(218, 8%, 81%);
+      --checked: hsl(
+        var(--hue, 144),
+        calc((8 + (var(--complete) / 100 * (92))) * 1%),
+        calc((81 - (var(--complete) / 100 * (81 - 43))) * 1%)
+      );
+      --control: hsl(300, 100%, 100%);
+      --border: 5px;
+      --width: 140;
+      --height: 60;
+      height: calc(var(--height) * 1px);
+      width: calc(var(--width) * 1px);
+      border-radius: 100px;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      position: relative;
+      overflow: visible;
+      container-type: inline-size;
+      background: #0000;
+      transition: outline var(--transition) var(--ease);
+      outline-offset: 2px;
     }
-  }
 
-  .liquid-toggle {
-    --unchecked: hsl(218, 8%, 81%);
-    --checked: hsl(
-      var(--hue, 144),
-      calc((8 + (var(--complete) / 100 * (92))) * 1%),
-      calc((81 - (var(--complete) / 100 * (81 - 43))) * 1%)
-    );
-    --control: hsl(300, 100%, 100%);
-    --border: 5px;
-    --width: 140;
-    --height: 60;
-    height: calc(var(--height) * 1px);
-    width: calc(var(--width) * 1px);
-    border-radius: 100px;
-    border: 0;
-    padding: 0;
-    cursor: pointer;
-    position: relative;
-    overflow: visible;
-    container-type: inline-size;
-    background: #0000;
-    transition: outline var(--transition) var(--ease);
-    outline-offset: 2px;
-  }
+    & .liquid-toggle:focus-visible {
+      outline: 4px solid color-mix(in oklch, var(--checked), #0000);
+    }
+    & .liquid-toggle:active {
+      outline: none;
+    }
+    & .liquid-toggle[data-active='true']:focus-visible {
+      outline: 4px solid #0000;
+    }
 
-  .liquid-toggle:focus-visible {
-    outline: 4px solid color-mix(in oklch, var(--checked), #0000);
-  }
-  .liquid-toggle:active {
-    outline: none;
-  }
-  .liquid-toggle[data-active='true']:focus-visible {
-    outline: 4px solid #0000;
-  }
+    & .indicator {
+      border-radius: 100px;
+      pointer-events: none;
+      height: 100%;
+      width: 100%;
+      background: var(--checked);
+      position: absolute;
+      top: 50%;
+      scale: 1;
+      left: 50%;
+      translate: -50% -50%;
+    }
 
-  .indicator {
-    border-radius: 100px;
-    pointer-events: none;
-    height: 100%;
-    width: 100%;
-    background: var(--checked);
-    position: absolute;
-    top: 50%;
-    scale: 1;
-    left: 50%;
-    translate: -50% -50%;
-  }
+    & .knockout {
+      height: calc(var(--height) * 1px);
+      width: calc(var(--width) * 1px);
+      border-radius: 100px;
+      filter: url(#remove-black);
+      position: absolute;
+      inset: 0;
+      will-change: filter, scale;
+      transform: translate3d(0, 0, 0);
+    }
+    & .indicator--masked {
+      background: var(--checked);
+      z-index: 12;
+      height: 100%;
+      width: 100%;
+      translate: -50% -50%;
+      container-type: inline-size;
 
-  .knockout {
-    height: calc(var(--height) * 1px);
-    width: calc(var(--width) * 1px);
-    border-radius: 100px;
-    filter: url(#remove-black);
-    position: absolute;
-    inset: 0;
-    will-change: filter, scale;
-    transform: translate3d(0, 0, 0);
-  }
-  .indicator--masked {
-    background: var(--checked);
-    z-index: 12;
-    height: 100%;
-    width: 100%;
-    translate: -50% -50%;
-    container-type: inline-size;
+      & .mask {
+        position: absolute;
+        height: calc(100% - (2 * var(--border)));
+        width: calc(60% - (2 * var(--border)));
+        top: 50%;
+        background: #000;
+        left: var(--border);
+        border-radius: 100px;
+      }
+    }
 
-    .mask {
+    & .wrapper {
+      position: absolute;
+      inset: 0;
+      border-radius: 100px;
+    }
+
+    & .liquids {
+      position: absolute;
+      inset: 0;
+      transform: translate3d(0, 0, 0);
+      border-radius: 100px;
+      overflow: hidden;
+      filter: url(#goo);
+
+      & .liquid__shadow {
+        position: absolute;
+        inset: 0;
+        box-shadow: inset 0px 0px 3px 4px var(--checked),
+          inset calc(((var(--complete) / 100) * 8px) + -4px) 0px 3px 4px var(--checked);
+        border-radius: 100px;
+      }
+
+      & .liquid__track {
+        content: '';
+        height: calc((var(--height) * 1px) - (0 * var(--border)));
+        width: calc((var(--width) * 1px) - (0 * var(--border)));
+        background: var(--checked);
+        border-radius: 100px;
+        position: absolute;
+        top: 50%;
+      }
+    }
+
+    & .indicator__liquid {
       position: absolute;
       height: calc(100% - (2 * var(--border)));
       width: calc(60% - (2 * var(--border)));
+      container-type: inline-size;
       top: 50%;
-      background: #000;
+      background: #0000;
       left: var(--border);
       border-radius: 100px;
-    }
-  }
 
-  .wrapper {
-    position: absolute;
-    inset: 0;
-    border-radius: 100px;
-  }
+      & .shadow {
+        opacity: 0;
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 100px;
+        box-shadow: 1px -1px 2px hsl(0 0% 100% / 0.5) inset,
+          0px -1px 2px hsl(0 0% 100% / 0.5) inset,
+          -1px -1px 2px hsl(0 0% 100% / 0.5) inset,
+          1px 1px 2px hsl(0 0% 30% / 0.5) inset,
+          -8px 4px 10px -6px hsl(0 0% 30% / 0.25) inset,
+          -1px 1px 6px hsl(0 0% 30% / 0.25) inset,
+          -1px -1px 8px hsl(0 0% 60% / 0.15), 1px 1px 2px hsl(0 0% 30% / 0.15),
+          2px 2px 6px hsl(0 0% 30% / 0.15),
+          -2px -1px 2px hsl(0 0% 100% / 0.25) inset,
+          3px 6px 16px -6px hsl(0 0% 30% / 0.5);
+        z-index: 20;
+      }
 
-  .liquids {
-    position: absolute;
-    inset: 0;
-    transform: translate3d(0, 0, 0);
-    border-radius: 100px;
-    overflow: hidden;
-    filter: url(#goo);
-
-    .liquid__shadow {
-      position: absolute;
-      inset: 0;
-      box-shadow: inset 0px 0px 3px 4px var(--checked),
-        inset calc(((var(--complete) / 100) * 8px) + -4px) 0px 3px 4px var(--checked);
-      border-radius: 100px;
-    }
-
-    .liquid__track {
-      content: '';
-      height: calc((var(--height) * 1px) - (0 * var(--border)));
-      width: calc((var(--width) * 1px) - (0 * var(--border)));
-      background: var(--checked);
-      border-radius: 100px;
-      position: absolute;
-      top: 50%;
-    }
-  }
-
-  .indicator__liquid {
-    position: absolute;
-    height: calc(100% - (2 * var(--border)));
-    width: calc(60% - (2 * var(--border)));
-    container-type: inline-size;
-    top: 50%;
-    background: #0000;
-    left: var(--border);
-    border-radius: 100px;
-
-    .shadow {
-      opacity: 0;
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 100px;
-      box-shadow: 1px -1px 2px hsl(0 0% 100% / 0.5) inset,
-        0px -1px 2px hsl(0 0% 100% / 0.5) inset,
-        -1px -1px 2px hsl(0 0% 100% / 0.5) inset,
-        1px 1px 2px hsl(0 0% 30% / 0.5) inset,
-        -8px 4px 10px -6px hsl(0 0% 30% / 0.25) inset,
-        -1px 1px 6px hsl(0 0% 30% / 0.25) inset,
-        -1px -1px 8px hsl(0 0% 60% / 0.15), 1px 1px 2px hsl(0 0% 30% / 0.15),
-        2px 2px 6px hsl(0 0% 30% / 0.15),
-        -2px -1px 2px hsl(0 0% 100% / 0.25) inset,
-        3px 6px 16px -6px hsl(0 0% 30% / 0.5);
-      z-index: 20;
-    }
-
-    .cover {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: white;
-      border-radius: 100px;
+      & .cover {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: white;
+        border-radius: 100px;
+      }
     }
   }
 }
@@ -367,10 +369,10 @@ const rawCSS = `
     --font-width-min: 375;
     --font-width-max: 1500;
   }
-  *, *:after, *:before {
+  .liquid-toggle-container *, .liquid-toggle-container *:after, .liquid-toggle-container *:before {
     box-sizing: border-box;
   }
-  .app-container {
+  .liquid-toggle-container {
     display: grid;
     place-items: center;
     font-family: 'SF Pro Text', 'SF Pro Icons', 'AOS Icons', 'Helvetica Neue', Helvetica, Arial, sans-serif, system-ui;
@@ -378,10 +380,10 @@ const rawCSS = `
     position: relative;
     color-scheme: light dark;
   }
-  .app-container[data-theme='light'] {
+  .liquid-toggle-container[data-theme='light'] {
     color-scheme: light only;
   }
-  .app-container[data-theme='dark'] {
+  .liquid-toggle-container[data-theme='dark'] {
     color-scheme: dark only;
   }
   .sr-only {
@@ -634,7 +636,7 @@ export const LiquidGooToggle = ({ checked = false, onChange, scale = 1, classNam
 
       <div
         ref={containerRef}
-        className={`app-container relative z-10 flex items-center justify-center bg-transparent pointer-events-auto transform origin-center ${className || 'w-full h-full p-8'}`}
+        className={`liquid-toggle-container relative z-10 flex items-center justify-center bg-transparent pointer-events-auto transform origin-center ${className || 'w-full h-full p-8'}`}
         style={{ transform: scale !== 1 ? `scale(${scale})` : undefined }}
         data-theme={config.theme}
         data-mapped={config.mapped}
@@ -644,12 +646,7 @@ export const LiquidGooToggle = ({ checked = false, onChange, scale = 1, classNam
         data-bounce={config.bounce}
       >
         <main className="z-10 scale-110">
-          <div className="arrow arrow--main">
-            <span>toca y arrastra.</span>
-            <svg viewBox="0 0 77 139" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" clipRule="evenodd" d="M63.9153 0.37541C62.6706 1.85361 63.1403 31.3942 64.7373 54.4353C65.5593 65.9325 67.0389 77.8285 68.8708 87.6362C71.0784 99.4618 71.3837 102.113 70.7496 103.99C70.1155 105.914 68.6594 106.384 61.9191 106.876C51.2566 107.674 49.3543 108.003 32.6561 112.038C25.9157 113.681 18.8936 115.112 18.7057 114.924C18.6352 114.877 19.1754 113.939 19.8799 112.859C21.3126 110.63 21.5944 109.692 21.1951 108.401C20.6784 106.642 18.5882 105.656 16.8973 106.36C16.451 106.548 14.807 107.604 13.257 108.683C10.5797 110.56 9.0531 111.405 4.54388 113.47C-0.435059 115.745 -1.37449 119.734 1.98395 124.404C3.48702 126.515 4.9901 127.829 8.65384 130.246C12.8578 132.991 16.2397 134.61 20.561 135.971C22.4868 136.581 24.9293 137.426 25.9627 137.872C27.137 138.364 27.9355 138.575 28.0764 138.435C28.9219 137.59 24.718 133.249 18.3534 128.51C15.8404 126.633 13.4684 124.826 13.0691 124.521L12.3646 123.934L13.304 123.77C19.8565 122.667 28.1468 120.861 35.8736 118.819C45.1269 116.379 51.2566 115.018 55.8128 114.385C64.2441 113.211 68.0018 112.578 69.4579 112.132C72.558 111.17 74.977 108.824 75.8929 105.867C76.8559 102.77 76.5505 99.1568 74.2959 87.2842C71.5951 73.0888 70.1155 61.1928 68.5185 41.1785C67.5086 28.5551 66.3813 11.6614 66.1465 5.04465C65.9821 0.750832 65.7707 0 64.7608 0C64.4555 0 64.0797 0.164239 63.9153 0.37541Z" fill="currentColor" />
-            </svg>
-          </div>
+
 
           <button ref={toggleRef} aria-label="toggle" aria-pressed="false" className="liquid-toggle">
             <div className="debug debug--knockout">

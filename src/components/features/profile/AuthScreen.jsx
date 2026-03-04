@@ -3,6 +3,8 @@ import {
     User, UserPlus, Mail, Eye, EyeOff, Camera, Chrome, Facebook,
     AlertTriangle, ArrowRight
 } from 'lucide-react';
+import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 
 const AuthScreen = ({ onLogin, theme, isDarkMode, onOpenEditor }) => {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -75,7 +77,7 @@ const AuthScreen = ({ onLogin, theme, isDarkMode, onOpenEditor }) => {
     };
 
     return (
-        <div className="flex flex-col h-full w-full justify-center px-8 md:px-10 xl:px-14 relative z-10 animate-in fade-in duration-500">
+        <div className="flex flex-col h-full w-full justify-center relative z-10 animate-in fade-in duration-500">
             <div className="flex flex-col items-center mb-6 transition-all duration-300">
                 <div className={`p-5 rounded-full mb-4 border-2 ${theme.border} ${theme.iconBg} shadow-none`}>
                     {isRegistering ? (registrationStep === 2 ? <Camera className="w-8 h-8" strokeWidth={2} /> : <UserPlus className="w-8 h-8" strokeWidth={2} />) : <User className="w-8 h-8" strokeWidth={2} />}
@@ -100,21 +102,21 @@ const AuthScreen = ({ onLogin, theme, isDarkMode, onOpenEditor }) => {
                             </div>
                         </div>
                         <div className="space-y-1"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Biografía (Opcional)</label><textarea name="bio" value={formData.bio} onChange={handleChange} rows={3} className={`block w-full px-5 py-4 rounded-2xl outline-none text-sm font-medium resize-none ${theme.inputBg} ${theme.inputText}`} placeholder="Cuéntanos algo sobre ti..." /></div>
-                        <div className="flex gap-3 pt-2"><button type="button" onClick={handleBackStep} className={`flex-1 py-4 rounded-full text-sm font-bold uppercase tracking-widest border ${theme.text} ${theme.border}`}>Atrás</button><button type="submit" disabled={isLoading} className={`flex-[2] py-4 rounded-full text-sm font-black uppercase tracking-widest transition-all active:scale-95 shadow-none border-0 hover:-translate-y-1 ${theme.buttonBg} ${theme.buttonText}`}>{isLoading ? 'Creando...' : 'Finalizar'}</button></div>
+                        <div className="flex gap-3 pt-2"><LiquidActionButton type="button" onClick={handleBackStep} shape="pill" isDarkMode={isDarkMode} className="flex-1 h-14 text-sm font-bold uppercase tracking-widest">Atrás</LiquidActionButton><LiquidActionButton type="submit" disabled={isLoading} shape="pill" isDarkMode={isDarkMode} className="flex-[2] h-14 text-sm font-black uppercase tracking-widest hover:-translate-y-1">{isLoading ? 'Creando...' : 'Finalizar'}</LiquidActionButton></div>
                     </div>
                 ) : (
                     <div className="space-y-4 animate-in slide-in-from-left duration-300">
-                        {isRegistering && <div className="space-y-1"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Nombre</label><input name="name" value={formData.name} onChange={handleChange} className={`block w-full px-5 py-4 rounded-full outline-none text-sm font-bold ${theme.inputBg} ${theme.inputText}`} placeholder="TU NOMBRE" /></div>}
-                        <div className="space-y-1"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Email</label><input name="email" value={formData.email} onChange={handleChange} className={`block w-full px-5 py-4 rounded-full outline-none text-sm font-bold ${theme.inputBg} ${theme.inputText}`} placeholder="CORREO@EJEMPLO.COM" /></div>
-                        <div className="space-y-1 relative"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Contraseña</label><div className="relative"><input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} className={`block w-full px-5 py-4 rounded-full outline-none text-sm font-bold ${theme.inputBg} ${theme.inputText}`} placeholder="••••••••" /><button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute inset-y-0 right-0 pr-5 flex items-center ${theme.textMuted} hover:${theme.text}`}>{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button></div></div>
-                        {isRegistering ? <button type="button" onClick={handleNextStep} className={`w-full py-4 rounded-full text-sm font-black uppercase tracking-widest mt-6 transition-all active:scale-95 border-0 hover:-translate-y-1 shadow-none flex items-center justify-center gap-2 ${theme.buttonBg} ${theme.buttonText}`}>Siguiente <ArrowRight size={16} /></button> : <button type="submit" disabled={isLoading} className={`w-full py-4 rounded-full text-sm font-black uppercase tracking-widest mt-6 transition-all active:scale-95 border-0 hover:-translate-y-1 shadow-none ${theme.buttonBg} ${theme.buttonText}`}>{isLoading ? 'PROCESANDO...' : 'INGRESAR'}</button>}
+                        {isRegistering && <div className="space-y-1"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Nombre</label><LiquidGlassInput name="name" value={formData.name} onChange={handleChange} placeholder="TU NOMBRE" isDarkMode={isDarkMode} className="!h-14 font-bold" /></div>}
+                        <div className="space-y-1"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Email</label><LiquidGlassInput name="email" value={formData.email} onChange={handleChange} placeholder="CORREO@EJEMPLO.COM" isDarkMode={isDarkMode} className="!h-14 font-bold" /></div>
+                        <div className="space-y-1"><label className={`text-[10px] font-bold uppercase tracking-wider ml-3 ${theme.text}`}>Contraseña</label><LiquidGlassInput type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" isDarkMode={isDarkMode} className="!h-14 font-bold" rightIcon={<button type="button" onClick={() => setShowPassword(!showPassword)} className={`flex items-center ${theme.textMuted} hover:${theme.text}`}>{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>} /></div>
+                        {isRegistering ? <LiquidActionButton type="button" onClick={handleNextStep} shape="pill" isDarkMode={isDarkMode} className="w-full h-14 text-sm font-black uppercase tracking-widest mt-6 hover:-translate-y-1">Siguiente <ArrowRight size={16} className="ml-2" /></LiquidActionButton> : <LiquidActionButton type="submit" disabled={isLoading} shape="pill" isDarkMode={isDarkMode} className="w-full h-14 text-sm font-black uppercase tracking-widest mt-6 hover:-translate-y-1">{isLoading ? 'PROCESANDO...' : 'INGRESAR'}</LiquidActionButton>}
                     </div>
                 )}
             </form>
             {(!isRegistering || registrationStep === 1) && (
                 <>
-                    <div className="mt-8 grid grid-cols-2 gap-3"><button type="button" onClick={() => handleSocial('Google')} className={`flex items-center justify-center py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${theme.socialBg}`}><Chrome size={18} className="mr-2" /> Google</button><button type="button" onClick={() => handleSocial('Facebook')} className={`flex items-center justify-center py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${theme.socialBg}`}><Facebook size={18} className="mr-2" /> Facebook</button></div>
-                    <p className={`mt-8 text-center text-xs font-bold uppercase tracking-wide ${theme.textMuted}`}><button type="button" onClick={() => resetFlow(!isRegistering)} className={`underline decoration-2 underline-offset-4 ${theme.text}`}>{isRegistering ? '¿Ya tienes cuenta?' : '¿Crear cuenta nueva?'}</button></p>
+                    <div className="mt-6 grid grid-cols-2 gap-3"><LiquidActionButton type="button" onClick={() => handleSocial('Google')} shape="pill" isDarkMode={isDarkMode} className="w-full h-12 text-xs font-bold uppercase tracking-wider"><Chrome size={18} className="mr-2" /> Google</LiquidActionButton><LiquidActionButton type="button" onClick={() => handleSocial('Facebook')} shape="pill" isDarkMode={isDarkMode} className="w-full h-12 text-xs font-bold uppercase tracking-wider"><Facebook size={18} className="mr-2" /> Facebook</LiquidActionButton></div>
+                    <p className={`mt-4 text-center text-xs font-bold uppercase tracking-wide ${theme.textMuted}`}><button type="button" onClick={() => resetFlow(!isRegistering)} className={`underline decoration-2 underline-offset-4 ${theme.text}`}>{isRegistering ? '¿Ya tienes cuenta?' : '¿Crear cuenta nueva?'}</button></p>
                 </>
             )}
         </div>

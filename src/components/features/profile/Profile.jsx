@@ -6,6 +6,7 @@ import ImageEditor from './ImageEditor';
 import ImageViewer from './ImageViewer';
 import ProfileMenu from './ProfileMenu';
 import AuthScreen from './AuthScreen';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 
 const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme, starrySky, setStarrySky, darkMode, toggleDarkMode, minimal = false }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +87,7 @@ const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme
 
             {/* Profile Modal/Dropdown */}
             {isOpen && (
-                <div className="fixed inset-0 md:absolute md:inset-auto md:top-[70px] md:right-0 w-full h-full md:w-[450px] xl:w-[500px] md:h-[650px] bg-white/80 dark:bg-[#121214]/80 backdrop-blur-2xl md:rounded-[32px] shadow-2xl md:shadow-[0_30px_70px_rgba(0,0,0,0.4)] border-0 overflow-hidden animate-in zoom-in-95 duration-300 origin-top-right z-[10001] md:z-[50]">
+                <div className="fixed inset-0 md:absolute md:inset-auto md:top-[70px] md:right-0 w-full h-full md:w-[450px] xl:w-[500px] md:h-[650px] bg-white/80 dark:bg-[#121214]/80 backdrop-blur-2xl md:rounded-[48px] shadow-2xl md:shadow-[0_30px_70px_rgba(0,0,0,0.4)] border-0 overflow-hidden animate-in zoom-in-95 duration-300 origin-top-right z-[10001] md:z-[50]">
 
                     {/* Floating Layers: Viewer and Editor */}
                     {viewingImage && !editorImage && (
@@ -141,19 +142,25 @@ const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme
                             setStarrySky={setStarrySky}
                         />
                     ) : (
-                        <div className="flex-1 h-full flex flex-col justify-center pt-16 md:pt-10">
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="absolute top-6 right-6 md:top-4 md:right-4 p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors z-20"
-                            >
-                                <X size={20} className="text-gray-400" />
-                            </button>
-                            <AuthScreen
-                                onLogin={handleLogin}
-                                theme={theme}
-                                isDarkMode={darkMode}
-                                onOpenEditor={handleOpenEditor}
-                            />
+                        <div className="flex-1 h-full flex flex-col p-6">
+                            <div className="w-full flex justify-end">
+                                <LiquidActionButton
+                                    onClick={() => setIsOpen(false)}
+                                    className="z-20 w-12 h-12 flex-shrink-0"
+                                    isDarkMode={darkMode}
+                                    shape="circle"
+                                >
+                                    <X size={20} className={darkMode ? "text-white" : "text-gray-900"} />
+                                </LiquidActionButton>
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center min-h-0 w-full pb-6">
+                                <AuthScreen
+                                    onLogin={handleLogin}
+                                    theme={theme}
+                                    isDarkMode={darkMode}
+                                    onOpenEditor={handleOpenEditor}
+                                />
+                            </div>
                         </div>
                     )}
                 </div>

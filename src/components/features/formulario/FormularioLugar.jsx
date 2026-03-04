@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Save, Image as ImageIcon, Type, AlignLeft, Tag, Palette, Globe, Upload, Calendar, Clock, Map as MapIcon, Home, Building } from 'lucide-react';
 import FormularioEvento from '@/components/features/formulario/FormularioEvento';
+import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 
 // Categorías y Colores
 const CATEGORIAS = ['parques', 'monumentos', 'restaurantes', 'museos', 'hoteles', 'mercados', 'playas', 'bares', 'discotecas'];
@@ -282,14 +284,15 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                                 <label className={LABEL_CLASSES}>
                                     <Type size={14} className={formData.type === 'evento' ? "text-yellow-500" : "text-blue-500"} /> {formData.type === 'evento' ? 'TÍTULO DEL EVENTO' : 'NOMBRE DEL LUGAR'}
                                 </label>
-                                <input
+                                <LiquidGlassInput
                                     type="text"
                                     name="nombre"
                                     value={formData.nombre}
                                     onChange={handleChange}
-                                    className={INPUT_CLASSES}
+                                    className="!h-14 font-bold w-full"
                                     placeholder={formData.type === 'evento' ? "Ej: Festival de Jazz 2026" : "Ej: Mirador del Valle"}
                                     required
+                                    isDarkMode={true}
                                 />
                                 {errors.nombre && <p className="text-red-500 text-xs font-bold ml-1 animate-pulse">{errors.nombre}</p>}
                             </div>
@@ -298,11 +301,11 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className={LABEL_CLASSES}>LATITUD</label>
-                                        <input type="number" name="latitud" value={formData.latitud} onChange={handleChange} step="any" className={INPUT_CLASSES} required />
+                                        <LiquidGlassInput type="number" name="latitud" value={formData.latitud} onChange={handleChange} step="any" className="!h-14 font-bold w-full" required isDarkMode={true} />
                                     </div>
                                     <div className="space-y-2">
                                         <label className={LABEL_CLASSES}>LONGITUD</label>
-                                        <input type="number" name="longitud" value={formData.longitud} onChange={handleChange} step="any" className={INPUT_CLASSES} required />
+                                        <LiquidGlassInput type="number" name="longitud" value={formData.longitud} onChange={handleChange} step="any" className="!h-14 font-bold w-full" required isDarkMode={true} />
                                     </div>
                                 </div>
                             ) : (
@@ -340,13 +343,14 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                                 <label className={LABEL_CLASSES}>
                                     <AlignLeft size={14} className="text-blue-500" /> DESCRIPCIÓN CORTA (OPCIONAL)
                                 </label>
-                                <input
+                                <LiquidGlassInput
                                     type="text"
                                     name="descripcion_corta"
                                     value={formData.descripcion_corta}
                                     onChange={handleChange}
-                                    className={INPUT_CLASSES}
+                                    className="!h-14 font-bold w-full"
                                     placeholder="Breve resumen"
+                                    isDarkMode={true}
                                 />
                             </div>
 
@@ -354,13 +358,14 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                                 <label className={LABEL_CLASSES}>
                                     <MapIcon size={14} className="text-blue-500" /> DIRECCIÓN COMPLETA
                                 </label>
-                                <input
+                                <LiquidGlassInput
                                     type="text"
                                     name="direccion_completa"
                                     value={formData.direccion_completa}
                                     onChange={handleChange}
-                                    className={INPUT_CLASSES}
+                                    className="!h-14 font-bold w-full"
                                     placeholder="Av. Principal 123"
+                                    isDarkMode={true}
                                 />
                             </div>
 
@@ -368,71 +373,71 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Teléfono</label>
-                                    <input type="text" name="telefono" value={formData.telefono} onChange={handleChange} className={INPUT_CLASSES} placeholder="+51 ..." />
+                                    <LiquidGlassInput type="text" name="telefono" value={formData.telefono} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="+51 ..." isDarkMode={true} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Email</label>
-                                    <input type="email" name="email" value={formData.email} onChange={handleChange} className={INPUT_CLASSES} placeholder="contacto@ejemplo.com" />
+                                    <LiquidGlassInput type="email" name="email" value={formData.email} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="contacto@ejemplo.com" isDarkMode={true} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Horario Apertura</label>
-                                    <input type="time" name="horario_apertura" value={formData.horario_apertura} onChange={handleChange} className={INPUT_CLASSES} />
+                                    <LiquidGlassInput type="time" name="horario_apertura" value={formData.horario_apertura} onChange={handleChange} className="!h-14 font-bold w-full" isDarkMode={true} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Horario Cierre</label>
-                                    <input type="time" name="horario_cierre" value={formData.horario_cierre} onChange={handleChange} className={INPUT_CLASSES} />
+                                    <LiquidGlassInput type="time" name="horario_cierre" value={formData.horario_cierre} onChange={handleChange} className="!h-14 font-bold w-full" isDarkMode={true} />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className={LABEL_CLASSES}>Días de Operación</label>
-                                <input type="text" name="dias_operacion" value={formData.dias_operacion} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Lun-Vie" />
+                                <LiquidGlassInput type="text" name="dias_operacion" value={formData.dias_operacion} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Lun-Vie" isDarkMode={true} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Precio Entrada</label>
-                                    <input type="text" name="precio_entrada" value={formData.precio_entrada} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: S/ 10 o Gratis" />
+                                    <LiquidGlassInput type="text" name="precio_entrada" value={formData.precio_entrada} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: S/ 10 o Gratis" isDarkMode={true} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Año Construcción</label>
-                                    <input type="number" name="anio_construccion" value={formData.anio_construccion} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: 1950" />
+                                    <LiquidGlassInput type="number" name="anio_construccion" value={formData.anio_construccion} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: 1950" isDarkMode={true} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Arquitecto</label>
-                                    <input type="text" name="arquitecto" value={formData.arquitecto} onChange={handleChange} className={INPUT_CLASSES} placeholder="Nombre del arquitecto" />
+                                    <LiquidGlassInput type="text" name="arquitecto" value={formData.arquitecto} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Nombre del arquitecto" isDarkMode={true} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Estilo Arquitectónico</label>
-                                    <input type="text" name="estilo_arquitectonico" value={formData.estilo_arquitectonico} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Barroco, Moderno" />
+                                    <LiquidGlassInput type="text" name="estilo_arquitectonico" value={formData.estilo_arquitectonico} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Barroco, Moderno" isDarkMode={true} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Continente</label>
-                                    <input type="text" name="continente_nombre" value={formData.continente_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: América" />
+                                    <LiquidGlassInput type="text" name="continente_nombre" value={formData.continente_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: América" isDarkMode={true} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>País</label>
-                                    <input type="text" name="pais_nombre" value={formData.pais_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Perú" />
+                                    <LiquidGlassInput type="text" name="pais_nombre" value={formData.pais_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Perú" isDarkMode={true} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Región / Estado</label>
-                                    <input type="text" name="region_nombre" value={formData.region_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Junín" />
+                                    <LiquidGlassInput type="text" name="region_nombre" value={formData.region_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Junín" isDarkMode={true} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className={LABEL_CLASSES}>Ciudad</label>
-                                    <input type="text" name="ciudad_nombre" value={formData.ciudad_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Huancayo" />
+                                    <LiquidGlassInput type="text" name="ciudad_nombre" value={formData.ciudad_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Huancayo" isDarkMode={true} />
                                 </div>
                             </div>
                         </div>
@@ -499,13 +504,14 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                             <label className={LABEL_CLASSES}>
                                 <Globe size={14} className={formData.type === 'evento' ? "text-yellow-500" : "text-blue-500"} /> {formData.type === 'evento' ? 'UBICACIÓN TEXTUAL/LINK' : 'WEBSITE (OPCIONAL)'}
                             </label>
-                            <input
+                            <LiquidGlassInput
                                 type="url"
                                 name="website"
                                 value={formData.website}
                                 onChange={handleChange}
-                                className={INPUT_CLASSES}
+                                className="!h-14 font-bold w-full"
                                 placeholder="https://ejemplo.com"
+                                isDarkMode={true}
                             />
                         </div>
 
@@ -552,21 +558,29 @@ const FormularioLugar = ({ isOpen, onClose, onSubmit, initialCoords, initialData
                         </div>
 
                         {/* Botones de Acción */}
-                        <div className="pt-2 flex gap-4">
-                            <button
+                        <div className="pt-2 flex gap-4 h-16">
+                            <LiquidActionButton
                                 type="button"
                                 onClick={handleClose}
-                                className="flex-1 py-4 px-6 bg-slate-100 dark:bg-[#1c1c1e]/50 hover:bg-slate-200 dark:hover:bg-[#2c2c2e] text-slate-600 dark:text-white rounded-2xl font-bold transition-all active:scale-[0.98]"
+                                className="!w-full !rounded-2xl font-bold bg-white/5 opacity-80"
+                                isDarkMode={true}
+                                shape="pill"
                             >
-                                Cancelar
-                            </button>
-                            <button
+                                <span className="font-bold uppercase tracking-wider text-sm mx-4">Cancelar</span>
+                            </LiquidActionButton>
+                            <LiquidActionButton
                                 type="submit"
-                                className="flex-1 py-4 px-6 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-200 text-white dark:text-black rounded-2xl font-bold shadow-lg shadow-slate-900/20 dark:shadow-white/10 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                className="!w-full !rounded-2xl font-bold border-2 border-white/20"
+                                isDarkMode={true}
+                                shape="pill"
                             >
-                                <Save size={18} strokeWidth={2.5} />
-                                {initialData ? 'Guardar Cambios' : `Guardar ${formData.type === 'evento' ? 'Evento' : 'Lugar'}`}
-                            </button>
+                                <div className="flex items-center gap-2 px-4 shadow-lg text-white">
+                                    <Save size={18} strokeWidth={2.5} />
+                                    <span className="font-bold uppercase tracking-wider text-sm whitespace-nowrap">
+                                        {initialData ? 'Guardar Cambios' : `Guardar ${formData.type === 'evento' ? 'Evento' : 'Lugar'}`}
+                                    </span>
+                                </div>
+                            </LiquidActionButton>
                         </div>
 
                     </form>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, MapPin, Save, Image as ImageIcon, Type, AlignLeft, Tag, DollarSign, Users, Video, Bell, Link as LinkIcon, Upload } from 'lucide-react';
 import { createEvent } from '@/services/api';
 import { CustomDatePicker, CustomTimePicker } from '@/components/ui/DateTimePicker';
+import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 
 // Etiquetas de Evento (Ejemplos basados en imagen)
 const EVENT_TAGS = [
@@ -141,13 +143,14 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
             {/* Google Maps Link */}
             <div className="space-y-2">
                 <label className={LABEL_CLASSES}>Enlace de Google Maps para el Evento</label>
-                <input
+                <LiquidGlassInput
                     type="url"
                     name="google_maps_link"
                     value={formData.google_maps_link}
                     onChange={handleChange}
-                    className={INPUT_CLASSES}
+                    className="!h-14 font-bold w-full"
                     placeholder="https://www.google.com/maps/place/..."
+                    isDarkMode={true}
                 />
             </div>
 
@@ -155,11 +158,11 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>Latitud</label>
-                    <input type="number" name="latitud" value={formData.latitud} onChange={handleChange} className={INPUT_CLASSES} step="any" required />
+                    <LiquidGlassInput type="number" name="latitud" value={formData.latitud} onChange={handleChange} className="!h-14 font-bold w-full" step="any" required isDarkMode={true} />
                 </div>
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>Longitud</label>
-                    <input type="number" name="longitud" value={formData.longitud} onChange={handleChange} className={INPUT_CLASSES} step="any" required />
+                    <LiquidGlassInput type="number" name="longitud" value={formData.longitud} onChange={handleChange} className="!h-14 font-bold w-full" step="any" required isDarkMode={true} />
                 </div>
             </div>
 
@@ -167,36 +170,37 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>Continente</label>
-                    <input type="text" name="continente_nombre" value={formData.continente_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: América del Sur" />
+                    <LiquidGlassInput type="text" name="continente_nombre" value={formData.continente_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: América del Sur" isDarkMode={true} />
                 </div>
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>País</label>
-                    <input type="text" name="pais_nombre" value={formData.pais_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Perú" />
+                    <LiquidGlassInput type="text" name="pais_nombre" value={formData.pais_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Perú" isDarkMode={true} />
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>Región / Estado</label>
-                    <input type="text" name="region_nombre" value={formData.region_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Junín" />
+                    <LiquidGlassInput type="text" name="region_nombre" value={formData.region_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Junín" isDarkMode={true} />
                 </div>
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}>Ciudad</label>
-                    <input type="text" name="ciudad_nombre" value={formData.ciudad_nombre} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: Huancayo" />
+                    <LiquidGlassInput type="text" name="ciudad_nombre" value={formData.ciudad_nombre} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: Huancayo" isDarkMode={true} />
                 </div>
             </div>
 
             {/* Título */}
             <div className="space-y-2">
                 <label className={LABEL_CLASSES}>Título del Evento</label>
-                <input
+                <LiquidGlassInput
                     type="text"
                     name="nombre"
                     value={formData.nombre}
                     onChange={handleChange}
-                    className={INPUT_CLASSES}
+                    className="!h-14 font-bold w-full"
                     placeholder="Ej: Fiesta de Verano"
                     required
+                    isDarkMode={true}
                 />
                 {errors.nombre && <span className="text-red-500 text-xs">{errors.nombre}</span>}
             </div>
@@ -252,18 +256,18 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}><DollarSign size={14} /> Precio Entrada</label>
-                    <input type="number" name="precio" value={formData.precio} onChange={handleChange} className={INPUT_CLASSES} placeholder="0.00" min="0" />
+                    <LiquidGlassInput type="number" name="precio" value={formData.precio} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="0.00" min="0" isDarkMode={true} />
                 </div>
                 <div className="space-y-2">
                     <label className={LABEL_CLASSES}><Users size={14} /> Capacidad Máxima</label>
-                    <input type="number" name="capacidad" value={formData.capacidad} onChange={handleChange} className={INPUT_CLASSES} placeholder="Ej: 100" />
+                    <LiquidGlassInput type="number" name="capacidad" value={formData.capacidad} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="Ej: 100" isDarkMode={true} />
                 </div>
             </div>
 
             {/* Video Link */}
             <div className="space-y-2">
                 <label className={LABEL_CLASSES}><LinkIcon size={14} /> Video Promocional (Link Youtube/Vimeo)</label>
-                <input type="url" name="video_link" value={formData.video_link} onChange={handleChange} className={INPUT_CLASSES} placeholder="https://youtube.com/..." />
+                <LiquidGlassInput type="url" name="video_link" value={formData.video_link} onChange={handleChange} className="!h-14 font-bold w-full" placeholder="https://youtube.com/..." isDarkMode={true} />
             </div>
 
             {/* Video Upload */}
@@ -367,21 +371,27 @@ const FormularioEvento = ({ isOpen, onClose, onSubmit, initialCoords, initialDat
             </div>
 
             {/* Botones de Acción */}
-            <div className="pt-2 flex gap-4">
-                <button
+            <div className="pt-2 flex gap-4 h-16">
+                <LiquidActionButton
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-4 px-6 bg-slate-100 dark:bg-[#1c1c1e]/50 hover:bg-slate-200 dark:hover:bg-[#2c2c2e] text-slate-600 dark:text-white rounded-2xl font-bold transition-all active:scale-[0.98]"
+                    className="!w-full !rounded-2xl font-bold bg-white/5 opacity-80"
+                    isDarkMode={true}
+                    shape="pill"
                 >
-                    Cancelar
-                </button>
-                <button
+                    <span className="font-bold uppercase tracking-wider text-sm mx-4">Cancelar</span>
+                </LiquidActionButton>
+                <LiquidActionButton
                     type="submit"
-                    className="flex-1 py-4 px-6 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-gray-200 text-white dark:text-black rounded-2xl font-bold shadow-lg shadow-slate-900/20 dark:shadow-white/10 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="!w-full !rounded-2xl font-bold border-2 border-white/20"
+                    isDarkMode={true}
+                    shape="pill"
                 >
-                    <Save size={18} strokeWidth={2.5} />
-                    Publicar Evento
-                </button>
+                    <div className="flex items-center gap-2 px-4 shadow-lg text-white">
+                        <Save size={18} strokeWidth={2.5} />
+                        <span className="font-bold uppercase tracking-wider text-sm whitespace-nowrap">Publicar Evento</span>
+                    </div>
+                </LiquidActionButton>
             </div>
 
         </form>
