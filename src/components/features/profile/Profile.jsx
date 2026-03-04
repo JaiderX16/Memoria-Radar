@@ -62,21 +62,23 @@ const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme
             {/* Profile Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 bg-white/90 dark:bg-black/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-white/20 hover:scale-105 transition-all group h-[52px]"
+                className="flex items-center gap-2 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:scale-105 transition-all group h-[48px] justify-center text-white overflow-hidden"
             >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center text-white shadow-inner overflow-hidden">
-                    {user ? (
-                        user.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="font-bold">{user.name.charAt(0)}</span>
-                        )
+                {user ? (
+                    user.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-12 h-12 object-cover rounded-full" />
                     ) : (
-                        <UserIcon size={20} />
-                    )}
-                </div>
+                        <div className="w-12 h-12 flex items-center justify-center font-bold text-lg rounded-full">
+                            {user.name.charAt(0)}
+                        </div>
+                    )
+                ) : (
+                    <div className="w-12 h-12 flex items-center justify-center rounded-full">
+                        <UserIcon size={24} />
+                    </div>
+                )}
                 {!user && !minimal && (
-                    <span className="pr-3 text-sm font-bold text-gray-700 dark:text-white hidden md:block">
+                    <span className="pr-4 text-sm font-bold text-white hidden md:block">
                         Crear cuenta
                     </span>
                 )}

@@ -13,7 +13,6 @@ import {
 import ChatBotMobile from './ChatBotMobile';
 import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
 import { LiquidActionButton } from '@/buttons/LiquidActionButton';
-import html2canvas from 'html2canvas';
 const ChatBot = ({ isOpen, setIsOpen, chatState, setChatState, ...props }) => {
     const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -84,34 +83,6 @@ const ChatBotDesktop = ({
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const containerRef = useRef(null);
-    const [localCanvas, setLocalCanvas] = useState(null);
-    const timeoutRef = useRef();
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const updateCanvas = async () => {
-            if (containerRef.current) {
-                try {
-                    const canvas = await html2canvas(containerRef.current, {
-                        backgroundColor: null,
-                        scale: 0.5, // optimize performance
-                        logging: false,
-                        ignoreElements: (el) => el.tagName === 'INPUT' || el.tagName === 'BUTTON'
-                    });
-                    setLocalCanvas(canvas);
-                } catch (e) {
-                    // Ignore background capture errors
-                }
-            }
-        };
-
-        // Update when chat opens or new messages arrive, with a small delay to allow DOM to render
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(updateCanvas, 300);
-
-        return () => clearTimeout(timeoutRef.current);
-    }, [isOpen, messages.length]);
 
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
 
@@ -183,7 +154,7 @@ const ChatBotDesktop = ({
     };
 
     return (
-        <div ref={containerRef} className={`fixed bottom-4 right-[76px] w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+        <div ref={containerRef} className={`fixed bottom-4 right-[76px] w-[380px] h-[600px] bg-white/20 dark:bg-[#1c1c1e]/40 backdrop-blur-[24px] rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-white/20 dark:border-white/[0.1] transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
             {/* Header */}
             <div className={`bg-transparent p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
                 <div className="flex items-center gap-3">
@@ -277,8 +248,6 @@ const ChatBotDesktop = ({
                     <div className="w-full max-w-[320px] flex items-center gap-2 group">
                         <div className="flex-1">
                             <LiquidGlassInput
-                                domCanvas={localCanvas}
-                                pageRef={containerRef}
                                 isDarkMode={isDarkMode}
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
@@ -294,8 +263,6 @@ const ChatBotDesktop = ({
                         </div>
                         <div className="w-[48px] h-[48px] shrink-0">
                             <LiquidActionButton
-                                domCanvas={localCanvas}
-                                pageRef={containerRef}
                                 isDarkMode={isDarkMode}
                                 onClick={handleSendMessage}
                                 disabled={!inputValue.trim() && !selectedFile}

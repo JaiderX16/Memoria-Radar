@@ -140,7 +140,7 @@ export const useFiltrosAvanzados = (lugares) => {
       }
 
       // Sugerencias de categorías
-      if (lugar.categoria.toLowerCase().includes(term)) {
+      if (lugar.categoria?.toLowerCase().includes(term)) {
         suggestions.add(lugar.categoria);
       }
 

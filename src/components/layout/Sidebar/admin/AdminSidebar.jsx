@@ -232,7 +232,7 @@ const SidebarAdmin = ({ lugares, onAddLugar, onDeleteLugar, setIsOpen, isOpen, d
     transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
     top-4 left-4 bottom-4 right-4
     flex flex-col rounded-3xl border
-    bg-white dark:bg-zinc-950 backdrop-blur-xl border-slate-200 dark:border-zinc-800
+    bg-white/[0.03] backdrop-blur-[20px] border-white/[0.08]
     shadow-[0_8px_32px_rgba(0,0,0,0.2)]
     ${!isOpen ? '-translate-x-[105%] opacity-0 scale-95' : 'translate-x-0 opacity-100 scale-100'}
   `;

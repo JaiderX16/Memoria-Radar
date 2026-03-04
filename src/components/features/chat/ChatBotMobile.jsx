@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
 import { LiquidActionButton } from '@/buttons/LiquidActionButton';
-import html2canvas from 'html2canvas';
 
 const ChatBotMobile = ({
     isOpen,
@@ -37,34 +36,6 @@ const ChatBotMobile = ({
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const containerRef = useRef(null);
-    const [localCanvas, setLocalCanvas] = useState(null);
-    const timeoutRef = useRef();
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const updateCanvas = async () => {
-            if (containerRef.current) {
-                try {
-                    const canvas = await html2canvas(containerRef.current, {
-                        backgroundColor: null,
-                        scale: 0.5, // optimize performance
-                        logging: false,
-                        ignoreElements: (el) => el.tagName === 'INPUT' || el.tagName === 'BUTTON'
-                    });
-                    setLocalCanvas(canvas);
-                } catch (e) {
-                    // Ignore background capture errors
-                }
-            }
-        };
-
-        // Update when chat opens or new messages arrive, with a small delay to allow DOM to render
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(updateCanvas, 300);
-
-        return () => clearTimeout(timeoutRef.current);
-    }, [isOpen, messages.length]);
 
     const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
 
@@ -276,8 +247,6 @@ const ChatBotMobile = ({
                                     <div className="w-full max-w-[320px] flex items-center gap-2 group">
                                         <div className="flex-1">
                                             <LiquidGlassInput
-                                                domCanvas={localCanvas}
-                                                pageRef={containerRef}
                                                 isDarkMode={isDarkMode}
                                                 value={inputValue}
                                                 onChange={(e) => setInputValue(e.target.value)}
@@ -293,8 +262,6 @@ const ChatBotMobile = ({
                                         </div>
                                         <div className="w-[48px] h-[48px] shrink-0">
                                             <LiquidActionButton
-                                                domCanvas={localCanvas}
-                                                pageRef={containerRef}
                                                 isDarkMode={isDarkMode}
                                                 onClick={handleSendMessage}
                                                 disabled={!inputValue.trim() && !selectedFile}

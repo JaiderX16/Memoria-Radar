@@ -17,25 +17,26 @@ const Sidebar = ({
     setIsOpen,
     onCategorySelect,
     selectedCategories = [],
-    selectedLugar // Recibe el lugar seleccionado desde App.jsx
+    selectedLugar, // Recibe el lugar seleccionado desde App.jsx
+    isDarkMode
 }) => {
     // Clases para sidebar de USUARIO (pequeño, izquierda)
     const userSidebarClasses = `
     absolute z-[20000] overflow-hidden will-change-transform
     transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]
-    top-4 left-4 bottom-4 w-[calc(100%-32px)] md:w-[380px]
-    flex flex-col rounded-3xl border
-    bg-white/85 dark:bg-[#1C1C1E]/85 backdrop-blur-xl border-white/40 dark:border-white/5
+    top-4 left-4 bottom-4 w-[calc(100%-32px)] md:w-[clamp(380px,35vw,460px)]
+    flex flex-col rounded-[48px] border
+    bg-white/20 dark:bg-[#1c1c1e]/40 backdrop-blur-[24px] border-white/20 dark:border-white/[0.1]
     shadow-[0_8px_32px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]
     ${!isOpen ? '-translate-x-[105%] opacity-0 scale-95' : 'translate-x-0 opacity-100 scale-100'}
   `;
 
     return (
         <div className={userSidebarClasses}>
-            <Header setIsOpen={setIsOpen} places={lugares} onPlaceClick={onLugarClick} />
+            <Header setIsOpen={setIsOpen} places={lugares} onPlaceClick={onLugarClick} isDarkMode={isDarkMode} />
 
             <div className="flex-grow overflow-y-auto scrollbar-hide pt-2">
-                <Search value={searchTerm} onChange={onSearch} />
+                <Search value={searchTerm} onChange={onSearch} isDarkMode={isDarkMode} />
 
                 <Categories
                     selectedCategories={selectedCategories}

@@ -899,22 +899,24 @@ OBJETO: ${main.osm_id} (${main.type})
         />
 
         {/* Botón Buscar */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <LiquidActionButton
-              onClick={() => setIsSearchOpen(true)}
-              domCanvas={mapDomCanvas || domCanvas}
-              pageRef={containerRef}
-              isDarkMode={darkMode}
-              className="w-12 h-12"
-            >
-              <Search size={20} strokeWidth={2.5} />
-            </LiquidActionButton>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
-            <p>Buscar lugares (Ctrl+K)</p>
-          </TooltipContent>
-        </Tooltip>
+        {(userRole === 'admin' || userRole === 'business') && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <LiquidActionButton
+                onClick={() => setIsSearchOpen(true)}
+                domCanvas={mapDomCanvas || domCanvas}
+                pageRef={containerRef}
+                isDarkMode={darkMode}
+                className="w-12 h-12"
+              >
+                <Search size={20} strokeWidth={2.5} />
+              </LiquidActionButton>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="bg-black/80 text-white/90 border-none backdrop-blur-md">
+              <p>Buscar lugares (Ctrl+K)</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Botón de Extracción de Datos (PRUEBAS) - Solo Administradores y Negocios */}
         {(userRole === 'admin' || userRole === 'business') && (
