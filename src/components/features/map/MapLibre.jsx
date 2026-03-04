@@ -699,6 +699,7 @@ function ControlButton({
             domCanvas={domCanvas}
             pageRef={pageRef}
             isDarkMode={isDarkMode}
+            liquidGlassEffect={true}
             className={cn("w-12 h-12", className, disabled && "opacity-50 cursor-not-allowed")}
         >
             {children}
@@ -900,6 +901,7 @@ function CompassButton({ onClick, domCanvas, pageRef, isDarkMode }) {
             domCanvas={domCanvas}
             pageRef={pageRef}
             isDarkMode={isDarkMode}
+            liquidGlassEffect={true}
             className="w-12 h-12"
         >
             <div

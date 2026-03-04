@@ -292,6 +292,7 @@ function App() {
                             className="text-gray-700 dark:text-white"
                             shape="circle"
                             isDarkMode={darkMode}
+                            liquidGlassEffect={true}
                             domCanvas={domCanvas}
                             pageRef={pageRef}
                         >
@@ -410,6 +411,7 @@ function App() {
                     domCanvas={domCanvas}
                     pageRef={pageRef}
                     isDarkMode={darkMode}
+                    liquidGlassEffect={true}
                     placeholder="Buscar en SPOT"
                     leftIcon={<Search size={22} className={darkMode ? "text-white" : "text-gray-500"} />}
                     value={searchTerm}

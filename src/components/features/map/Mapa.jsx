@@ -907,6 +907,7 @@ OBJETO: ${main.osm_id} (${main.type})
                 domCanvas={mapDomCanvas || domCanvas}
                 pageRef={containerRef}
                 isDarkMode={darkMode}
+                liquidGlassEffect={true}
                 className="w-12 h-12"
               >
                 <Search size={20} strokeWidth={2.5} />
@@ -927,6 +928,7 @@ OBJETO: ${main.osm_id} (${main.type})
                 domCanvas={mapDomCanvas || domCanvas}
                 pageRef={containerRef}
                 isDarkMode={darkMode}
+                liquidGlassEffect={true}
                 className={`w-12 h-12 ${isExtractingMode ? 'ring-2 ring-blue-500' : ''}`}
               >
                 <Globe
@@ -951,6 +953,7 @@ OBJETO: ${main.osm_id} (${main.type})
                 domCanvas={mapDomCanvas || domCanvas}
                 pageRef={containerRef}
                 isDarkMode={darkMode}
+                liquidGlassEffect={true}
                 className={`w-12 h-12 ${isAddingPoint ? 'ring-2 ring-red-500' : ''}`}
               >
                 {isAddingPoint ? (

@@ -85,15 +85,25 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         vec2 m2 = uv - 0.5;
 
         float roundedBox;
+        vec2 d_normal;
         if (u_shapeType == 1) {
-            roundedBox = length(m2 * 2.0); 
+            vec2 p = fragCoord - iResolution.xy * 0.5;
+            float radius = min(iResolution.x, iResolution.y) * 0.5;
+            d_normal = p;
+            roundedBox = length(p) / radius; 
         } else {
             vec2 p = fragCoord - iResolution.xy * 0.5;
             float radius = iResolution.y * 0.5;
             float flatWidth = max(0.0, iResolution.x * 0.5 - radius);
-            vec2 d = vec2(max(0.0, abs(p.x) - flatWidth), p.y);
-            roundedBox = length(d) / radius;
+            d_normal = vec2(0.0, p.y);
+            if (abs(p.x) > flatWidth) {
+                d_normal.x = (abs(p.x) - flatWidth) * sign(p.x);
+            }
+            roundedBox = length(d_normal) / radius;
         }
+        
+        vec2 normal = length(d_normal) > 0.001 ? normalize(d_normal) : vec2(0.0);
+        
         roundedBox = pow(roundedBox, 6.0);
 
         // OPTIMIZATION: Hollow out the center of the shape (pill and circle)
@@ -108,19 +118,19 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         float rb2 = clamp((0.95 - roundedBox * 0.9) * 10.0, 0.0, 1.0) - clamp(pow(0.9 - roundedBox * 0.9, 1.0) * 10.0, 0.0, 1.0);
         float rb3 = clamp((1.5 - roundedBox * 1.1) * 2.0, 0.0, 1.0) - clamp(pow(1.0 - roundedBox * 1.1, 1.0) * 2.0, 0.0, 1.0);
 
-        float waveIntensity = 0.005 + (u_pressed * 0.02);
-        vec2 fluidOffset = vec2(sin(uv.y * 5.0 + iTime * 3.0), cos(uv.x * 5.0 + iTime * 3.0)) * waveIntensity;
+        // Constant pixel space waves prevent stretching in wide components
+        float waveIntensity = 2.0 + (u_pressed * 3.0);
+        vec2 fluidOffsetPixels = vec2(sin(fragCoord.y * 0.05 + iTime * 3.0), cos(fragCoord.x * 0.05 + iTime * 3.0)) * waveIntensity;
         
-        vec2 localLens = ((uv - 0.5) * (1.0 - roundedBox * (0.2 + u_pressed * 0.1)) + 0.5) + fluidOffset;
-        vec2 uvOffset = localLens - uv;
+        // Lens offset: push pixels inwards towards spine based on distance, plus fluid wave.
+        vec2 pixelOffset = -normal * (roundedBox * (12.0 + u_pressed * 8.0)) + fluidOffsetPixels;
 
         vec2 distortedUV;
         if (u_isDomCaptured) {
             vec2 docPixel = u_buttonBottomLeft + fragCoord;
-            vec2 baseUV = docPixel / u_pageResolution;
-            distortedUV = baseUV + uvOffset * (iResolution.xy / u_pageResolution) * 3.0;
+            distortedUV = (docPixel + pixelOffset) / u_pageResolution;
         } else {
-            distortedUV = uv + uvOffset * 2.0;
+            distortedUV = uv + pixelOffset / iResolution.xy;
         }
 
         fragColor = vec4(0.0);
@@ -144,21 +154,11 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
 
         float gradient = clamp((m2.y + 0.5), 0.0, 1.0) * 0.5 + clamp((-m2.y + 0.5) * rb3, 0.0, 1.0);
         
-        // Premium Apple-style glass lighting (brighter, less muddy shadows)
-        vec4 lighting = clamp(fragColor + vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.1, 0.0, 1.0);
-        
-        // Add a subtle glossy edge halo instead of dark shadows
-        float edgeHighlight = smoothstep(0.7, 1.0, roundedBox) * 0.15;
-        lighting.rgb += vec3(edgeHighlight);
-
-        lighting -= u_pressed * 0.1; 
+        vec4 lighting = clamp(fragColor + vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.25, 0.0, 1.0);
+        lighting -= u_pressed * 0.15; 
 
         float alpha = (1.0 - smoothstep(0.95, 1.0, roundedBox)) * coreMask;
         
-        // Very crisp external lip reflection
-        float border = smoothstep(0.94, 0.97, roundedBox) - smoothstep(0.97, 1.0, roundedBox);
-        lighting.rgb += vec3(border * 0.6);
-
         fragColor = vec4(lighting.rgb, alpha);
       }
 
