@@ -13,7 +13,7 @@ const UserAvatar = ({ name, image, size = "md", className = "", onClick }) => {
         <button
             type="button"
             onClick={onClick}
-            className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-black tracking-wider border-2 transition-transform hover:scale-105 active:scale-95 cursor-pointer overflow-hidden relative bg-gray-100 dark:bg-gray-800 shadow-none ${className}`}
+            className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-black tracking-wider border border-white/20 dark:border-white/10 transition-transform hover:scale-105 active:scale-95 cursor-pointer overflow-hidden relative bg-transparent backdrop-blur-sm shadow-none ${className}`}
         >
             {image ? (
                 <img src={image} alt="Profile" className="w-full h-full object-cover" />

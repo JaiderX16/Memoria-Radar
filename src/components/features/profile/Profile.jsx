@@ -62,7 +62,7 @@ const Profile = ({ user, setUser, showTools, setShowTools, mapTheme, setMapTheme
             {/* Profile Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:scale-105 transition-all group h-[48px] justify-center text-white overflow-hidden"
+                className="flex items-center gap-2 bg-transparent backdrop-blur-sm rounded-full shadow-lg border border-white/20 dark:border-white/10 hover:scale-105 transition-all group h-[48px] justify-center text-white overflow-hidden"
             >
                 {user ? (
                     user.avatar ? (
