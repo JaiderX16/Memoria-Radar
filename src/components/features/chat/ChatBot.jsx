@@ -154,11 +154,11 @@ const ChatBotDesktop = ({
     };
 
     return (
-        <div ref={containerRef} className={`fixed bottom-4 right-[76px] w-[380px] h-[600px] bg-white/20 dark:bg-[#1c1c1e]/40 backdrop-blur-[24px] rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-white/20 dark:border-white/[0.1] transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+        <div ref={containerRef} className={`fixed bottom-4 right-[76px] w-[380px] h-[600px] bg-white/20 dark:bg-[#1c1c1e]/40 backdrop-blur-[24px] rounded-[48px] shadow-2xl flex flex-col overflow-hidden border border-white/20 dark:border-white/[0.1] transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
             {/* Header */}
-            <div className={`bg-transparent p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
+            <div className={`bg-transparent p-6 pb-4 flex items-center justify-between z-20 transition-colors duration-300`}>
                 <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner bg-gray-100 dark:bg-[#1c1c1e]/50 dark:border dark:border-white/10`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-inner bg-gray-100 dark:bg-[#1c1c1e]/50 dark:border dark:border-white/10`}>
                         <Bot size={24} className="text-gray-900 dark:text-white" />
                     </div>
                     <div className="flex flex-col">
@@ -170,16 +170,24 @@ const ChatBotDesktop = ({
                     </div>
                 </div>
 
-                <button
+                <LiquidActionButton
                     onClick={() => setIsOpen(false)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 bg-gray-100 text-gray-500 dark:bg-[#1c1c1e]/50 dark:text-gray-400 dark:hover:text-white`}
+                    isDarkMode={isDarkMode}
+                    className="w-12 h-12"
                 >
-                    <ChevronDown size={24} />
-                </button>
+                    <ChevronDown size={20} />
+                </LiquidActionButton>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 space-y-4 scrollbar-hide py-4" onClick={() => setShowEmojiPicker(false)}>
+            <div
+                className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide relative"
+                onClick={() => setShowEmojiPicker(false)}
+                style={{
+                    maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)'
+                }}
+            >
                 <div className={`text-center text-[10px] text-gray-500 dark:text-gray-400 font-bold my-4 uppercase tracking-widest opacity-50`}>HOY</div>
 
                 {messages.map((msg) => {
@@ -219,7 +227,7 @@ const ChatBotDesktop = ({
             </div>
 
             {/* Input */}
-            <div className={`p-4 pb-10 bg-transparent border-t border-gray-200/50 dark:border-white/10`}>
+            <div className={`p-6 bg-transparent`}>
                 {selectedFile && (
                     <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
                         <div className={`bg-gray-50 border-gray-200 dark:bg-[#1c1c1e]/50 dark:border-white/10 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
@@ -244,8 +252,8 @@ const ChatBotDesktop = ({
                     </div>
                 )}
 
-                <div className="flex items-center justify-center w-full px-2">
-                    <div className="w-full max-w-[320px] flex items-center gap-2 group">
+                <div className="flex items-center justify-center w-full">
+                    <div className="w-full flex items-center gap-2 group">
                         <div className="flex-1">
                             <LiquidGlassInput
                                 isDarkMode={isDarkMode}
