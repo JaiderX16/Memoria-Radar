@@ -401,27 +401,14 @@ function App() {
             />
 
             {/* Search Bar (Apple Maps Style) */}
-            <div className="fixed bottom-4 md:bottom-auto md:top-4 left-1/2 -translate-x-1/2 w-full max-w-[360px] md:max-w-[420px] z-[20] px-4 pointer-events-auto transition-all duration-300">
+            <div className="fixed bottom-4 md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 w-full max-w-[360px] md:max-w-[500px] lg:max-w-[600px] z-[20] px-4 pointer-events-auto transition-all duration-300">
                 <LiquidGlassInput
+                    className="md:!h-12 md:[&_input]:text-base"
                     domCanvas={domCanvas}
                     pageRef={pageRef}
                     isDarkMode={darkMode}
-                    placeholder="Encontrar en SPOT"
+                    placeholder="Buscar en SPOT"
                     leftIcon={<Search size={22} className={darkMode ? "text-white" : "text-gray-500"} />}
-                    rightIcon={
-                        <div className="flex items-center gap-3">
-                            <Mic size={22} className={darkMode ? "text-white" : "text-gray-500"} />
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-400 to-yellow-500 flex items-center justify-center p-[2px] shadow-md border border-white/20">
-                                {user?.avatar ? (
-                                    <img src={user.avatar} alt="User" className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full rounded-full bg-black/20 flex items-center justify-center">
-                                        <User size={16} className="text-white" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    }
                     onClick={() => setIsSearchOpen(true)}
                 />
             </div>
