@@ -2,7 +2,7 @@ import React from 'react';
 import { MapPin, Star } from 'lucide-react';
 
 const Places = ({ places, onPlaceClick, selectedPlaceId }) => (
-    <div className="px-4 mb-8">
+    <div className="px-6 mb-8">
         <h2 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Lugares Populares</h2>
         <div className="space-y-3">
             {places.map((lugar) => {
