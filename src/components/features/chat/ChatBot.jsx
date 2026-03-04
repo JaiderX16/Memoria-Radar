@@ -183,7 +183,7 @@ const ChatBotDesktop = ({
     };
 
     return (
-        <div ref={containerRef} className={`fixed bottom-4 right-16 w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
+        <div ref={containerRef} className={`fixed bottom-4 right-[76px] w-[380px] h-[600px] bg-white/90 backdrop-blur-xl dark:bg-[#121214]/85 dark:backdrop-blur-2xl rounded-[32px] shadow-2xl flex flex-col overflow-hidden border border-gray-200/50 dark:border-white/10 transition-all duration-300 z-[1000] ${isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'}`}>
             {/* Header */}
             <div className={`bg-transparent p-4 flex items-center justify-between z-20 transition-colors duration-300`}>
                 <div className="flex items-center gap-3">
