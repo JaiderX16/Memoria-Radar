@@ -24,8 +24,14 @@ export const LiquidGlassInput: React.FC<LiquidGlassInputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
+  // When WebGL effect is active, use a lighter, clearer background to let the refraction 
+  // and the map background show perfectly through the center hollow area.
+  const glassBgClass = liquidGlassEffect
+    ? (isDarkMode ? 'bg-black/5 backdrop-blur-[2px] border border-white/10' : 'bg-white/5 backdrop-blur-[2px] border border-black/10')
+    : (isDarkMode ? 'bg-[#1c1c1e]/40 backdrop-blur-xl border border-white/20' : 'bg-white/40 backdrop-blur-xl border border-black/10');
+
   return (
-    <div className={`relative w-full h-16 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.3)] group transition-all duration-300 overflow-hidden ${isDarkMode ? 'bg-[#1c1c1e]/40 backdrop-blur-xl border border-white/20' : 'bg-white/40 backdrop-blur-xl border border-black/10'} ${isFocused ? 'ring-2 ring-blue-500/50' : ''} ${className}`}>
+    <div className={`relative w-full h-16 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.3)] group transition-all duration-300 overflow-hidden ${glassBgClass} ${isFocused ? 'ring-2 ring-blue-500/50' : ''} ${className}`}>
       {liquidGlassEffect && (
         <div className={`absolute inset-0 transition-opacity duration-500 overflow-hidden rounded-[inherit] pointer-events-none ${domCanvas ? 'opacity-100' : 'opacity-0'}`}>
           <LiquidGlassButtonWebGL

@@ -106,9 +106,13 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         
         roundedBox = pow(roundedBox, 6.0);
 
-        // OPTIMIZATION: Hollow out the center of the shape (pill and circle)
-        float coreMask = smoothstep(0.05, 0.45, roundedBox);
-        // Fast rejection for the center to save GPU processing
+        // Mask to isolate the glass effect strictly to the borders (like a glass frame)
+        // Made 4x thicker: starts much further in towards the center
+        float borderMask = smoothstep(0.0, 0.95, roundedBox);
+
+        // Fast rejection for the center to save GPU processing and let CSS show through cleanly
+        // Reduced the hole size slightly (0.15 to 0.65) so the glass border is thicker
+        float coreMask = smoothstep(0.15, 0.65, roundedBox);
         if (coreMask <= 0.0) {
             fragColor = vec4(0.0);
             return;
@@ -123,7 +127,8 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
         vec2 fluidOffsetPixels = vec2(sin(fragCoord.y * 0.05 + iTime * 3.0), cos(fragCoord.x * 0.05 + iTime * 3.0)) * waveIntensity;
         
         // Lens offset: push pixels inwards towards spine based on distance, plus fluid wave.
-        vec2 pixelOffset = -normal * (roundedBox * (12.0 + u_pressed * 8.0)) + fluidOffsetPixels;
+        // We multiply by borderMask so the center has ZERO physical distortion
+        vec2 pixelOffset = (-normal * (roundedBox * (12.0 + u_pressed * 8.0)) + fluidOffsetPixels) * borderMask;
 
         vec2 distortedUV;
         if (u_isDomCaptured) {
@@ -154,9 +159,12 @@ export const LiquidGlassButtonWebGL: React.FC<LiquidGlassButtonProps> = ({
 
         float gradient = clamp((m2.y + 0.5), 0.0, 1.0) * 0.5 + clamp((-m2.y + 0.5) * rb3, 0.0, 1.0);
         
-        vec4 lighting = clamp(fragColor + vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.25, 0.0, 1.0);
-        lighting -= u_pressed * 0.15; 
+        // Add the 3D glossy lighting ONLY to the borders using the borderMask
+        vec4 lightingAdd = vec4(rb1) * gradient * 0.15 + vec4(rb2) * 0.25;
+        vec4 lighting = clamp(fragColor + (lightingAdd * borderMask), 0.0, 1.0);
+        lighting -= (u_pressed * 0.15) * borderMask; 
 
+        // Apply coreMask so the center is fully transparent (CSS shines through)
         float alpha = (1.0 - smoothstep(0.95, 1.0, roundedBox)) * coreMask;
         
         fragColor = vec4(lighting.rgb, alpha);

@@ -33,6 +33,10 @@ export const LiquidActionButton: React.FC<LiquidActionButtonProps> = ({
 }) => {
     const [isPressed, setIsPressed] = useState(false);
 
+    const glassBgClass = liquidGlassEffect
+        ? (isDarkMode ? "bg-black/5 backdrop-blur-[2px] border-[0.5px] border-white/20" : "bg-white/5 backdrop-blur-[2px] border-[0.5px] border-black/10")
+        : (isDarkMode ? "bg-white/10 backdrop-blur-md border-[0.5px] border-white/20" : "bg-black/5 backdrop-blur-md border-[0.5px] border-black/10");
+
     return (
         <button
             onClick={onClick}
@@ -44,7 +48,7 @@ export const LiquidActionButton: React.FC<LiquidActionButtonProps> = ({
             className={cn(
                 "relative flex items-center justify-center transition-transform duration-200 active:scale-95 group overflow-hidden",
                 "w-12 h-12 rounded-full",
-                isDarkMode ? "bg-white/10 backdrop-blur-md border-[0.5px] border-white/20" : "bg-black/5 backdrop-blur-md border-[0.5px] border-black/10",
+                glassBgClass,
                 className
             )}
             data-html2canvas-ignore="true"

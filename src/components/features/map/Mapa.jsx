@@ -882,7 +882,7 @@ OBJETO: ${main.osm_id} (${main.type})
       </div>
 
       {/* Herramientas Flotantes */}
-      <div className="absolute top-6 right-6 z-20 flex flex-col gap-3 items-center ignore-capture">
+      <div className="absolute top-6 right-6 z-50 flex flex-col gap-3 items-center ignore-capture">
         {/* Botón Perfil / Usuario */}
         <Profile
           user={user}
