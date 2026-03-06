@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Bot, Send } from 'lucide-react';
+import { Bot, ArrowUp } from 'lucide-react';
+import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
+import { LiquidActionButton } from '@/buttons/LiquidActionButton';
 
 export default function ChatBotMobile({
     isOpen,
@@ -12,6 +14,9 @@ export default function ChatBotMobile({
     setInputValue,
     isTyping,
     setIsTyping,
+    domCanvas,
+    pageRef,
+    isDarkMode
 }) {
     const [isDragging, setIsDragging] = useState(false);
     const [sheetHeight, setSheetHeight] = useState(50); // Altura en vh
@@ -142,7 +147,7 @@ export default function ChatBotMobile({
                     height: `${sheetHeight}vh`,
                     transform: isOpen ? 'translateY(0)' : 'translateY(100%)'
                 }}
-                className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2rem] shadow-2xl flex flex-col w-full ${isDragging ? 'transition-none' : 'transition-all duration-300 ease-out'
+                className={`fixed bottom-0 left-0 right-0 z-[1000] bg-white/20 dark:bg-[#1c1c1e]/40 backdrop-blur-[24px] rounded-t-[48px] shadow-2xl flex flex-col w-full border-t border-white/20 dark:border-white/[0.1] ${isDragging ? 'transition-none' : 'transition-all duration-300 ease-out'
                     }`}
                 role="dialog"
                 aria-modal="true"
@@ -162,20 +167,30 @@ export default function ChatBotMobile({
                 </div>
 
                 {/* Contenedor scrollable de mensajes */}
-                <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4 pt-2">
-                    {displayMessages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] px-4 py-2.5 shadow-sm text-sm leading-relaxed ${msg.sender === 'user'
-                                ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm'
-                                : 'bg-gray-100 text-gray-800 rounded-2xl rounded-bl-sm border border-gray-200'
-                                }`}>
-                                {msg.text || (msg.file && `Envió un archivo: ${msg.file.name}`)}
+                <div
+                    className="flex-1 overflow-y-auto px-6 pb-4 pt-2 space-y-4 scrollbar-hide relative"
+                    style={{
+                        maskImage: 'linear-gradient(to bottom, transparent, black 5%, black 95%, transparent)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 5%, black 95%, transparent)'
+                    }}
+                >
+                    <div className="text-center text-[10px] text-gray-500 dark:text-gray-400 font-bold my-2 uppercase tracking-widest opacity-50">HOY</div>
+                    {displayMessages.map((msg) => {
+                        const isUser = msg.sender === 'user';
+                        return (
+                            <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full`}>
+                                <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md shadow-sm ${isUser
+                                    ? 'bg-black text-white dark:bg-[#262626] dark:text-white rounded-2xl rounded-tr-none'
+                                    : 'bg-[#E9E9EB] text-black dark:bg-[#262626] dark:text-white rounded-2xl rounded-tl-none border border-gray-200/50 dark:border-white/5'
+                                    }`}>
+                                    {msg.text || (msg.file && `Envió un archivo: ${msg.file.name}`)}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {isTyping && (
                         <div className="flex items-start">
-                            <div className={`px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-gray-100`}>
+                            <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-[#E9E9EB] dark:bg-[#262626]`}>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
@@ -187,23 +202,38 @@ export default function ChatBotMobile({
                 </div>
 
                 {/* Input de texto inferior (Fijo en la base) */}
-                <div className="flex-shrink-0 p-4 border-t border-gray-100 bg-white pb-6">
-                    <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={displayInput}
-                            onChange={(e) => setInputValue && setInputValue(e.target.value)}
-                            placeholder="Escribe un mensaje..."
-                            className="flex-1 bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 text-base rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent block py-3.5 px-5 outline-none transition-all"
-                        />
-                        <button
-                            type="submit"
-                            disabled={!displayInput.trim()}
-                            className="p-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-full transition-colors flex items-center justify-center shadow-sm"
-                        >
-                            <Send className="w-5 h-5" />
-                        </button>
-                    </form>
+                <div className="flex-shrink-0 p-6 pb-8 bg-transparent">
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                            <LiquidGlassInput
+                                isDarkMode={isDarkMode}
+                                domCanvas={domCanvas}
+                                pageRef={pageRef}
+                                value={displayInput}
+                                onChange={(e) => setInputValue && setInputValue(e.target.value)}
+                                placeholder="Escribe un mensaje..."
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSendMessage(e);
+                                    }
+                                }}
+                                className="!h-12 !text-sm"
+                            />
+                        </div>
+                        <div className="w-[48px] h-[48px] shrink-0">
+                            <LiquidActionButton
+                                isDarkMode={isDarkMode}
+                                domCanvas={domCanvas}
+                                pageRef={pageRef}
+                                onClick={handleSendMessage}
+                                disabled={!displayInput.trim()}
+                                className={!displayInput.trim() ? "opacity-50 pointer-events-none" : ""}
+                            >
+                                <ArrowUp size={20} strokeWidth={2.5} className={!displayInput.trim() ? "text-gray-500/50 rotate-90" : "text-black dark:text-white rotate-90"} />
+                            </LiquidActionButton>
+                        </div>
+                    </div>
                 </div>
             </div>
         </>
