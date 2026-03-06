@@ -405,7 +405,7 @@ function App() {
             />
 
             {/* Search Bar (Apple Maps Style) */}
-            <div className={`fixed bottom-4 md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 w-full max-w-[360px] md:max-w-[500px] lg:max-w-[600px] z-[20] px-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isSidebarOpen ? 'md:-translate-y-24 md:opacity-0 md:pointer-events-none pointer-events-auto' : 'md:translate-y-0 md:opacity-100 pointer-events-auto'}`}>
+            <div className={`fixed bottom-4 md:bottom-auto md:top-6 left-1/2 -translate-x-1/2 w-full max-w-[360px] md:max-w-[500px] lg:max-w-[600px] z-[20] px-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${chatState !== 'closed' ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'} ${isSidebarOpen ? 'md:-translate-y-24 md:opacity-0 md:pointer-events-none' : 'md:translate-y-0 md:opacity-100 md:pointer-events-auto'}`}>
                 <LiquidGlassInput
                     className="md:!h-12 md:[&_input]:text-base"
                     domCanvas={domCanvas}
