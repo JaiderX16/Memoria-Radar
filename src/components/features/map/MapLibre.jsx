@@ -807,10 +807,10 @@ function MapControls({
 
     if (position === "bottom-right" && isMobile) {
         if (chatState === 'half') {
-            dynamicPositionClass = "bottom-[48vh] right-6 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
+            dynamicPositionClass = "bottom-[52vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
         } else if (chatState === 'full') {
             // Se queda en la misma posición visual que 'half' pero se oculta detrás del chat (z-1000)
-            dynamicPositionClass = "bottom-[48vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[900] opacity-0 pointer-events-none";
+            dynamicPositionClass = "bottom-[52vh] right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[900] opacity-0 pointer-events-none";
         } else {
             dynamicPositionClass = "bottom-24 right-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-[1100]";
         }

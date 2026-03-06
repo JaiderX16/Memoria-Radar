@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Drawer } from 'vaul';
-import {
-    ArrowUp,
-    Paperclip,
-    Smile,
-    FileText,
-    Image as ImageIcon,
-    Trash2,
-    Mic
-} from 'lucide-react';
-import { LiquidGlassInput } from '@/buttons/LiquidGlassInput';
-import { LiquidActionButton } from '@/buttons/LiquidActionButton';
+import { X, Bot, Send } from 'lucide-react';
 
-const ChatBotMobile = ({
+export default function ChatBotMobile({
     isOpen,
     setIsOpen,
     chatState,
@@ -21,25 +10,19 @@ const ChatBotMobile = ({
     setMessages,
     inputValue,
     setInputValue,
-    selectedFile,
-    setSelectedFile,
     isTyping,
     setIsTyping,
-    showEmojiPicker,
-    setShowEmojiPicker,
-    domCanvas,
-    pageRef,
-    isDarkMode
-}) => {
-    const [isRecording, setIsRecording] = useState(false);
+}) {
+    const [isDragging, setIsDragging] = useState(false);
+    const [sheetHeight, setSheetHeight] = useState(50); // Altura en vh
+
+    const sheetRef = useRef(null);
+    const startY = useRef(0);
+    const startHeight = useRef(0);
+    const currentHeightRef = useRef(50);
 
     const messagesEndRef = useRef(null);
-    const fileInputRef = useRef(null);
-    const containerRef = useRef(null);
 
-    const emojis = ['😀', '😃', '😄', '😅', '😂', '🤣', '😊', '🥰', '😍', '😘', '😜', '😎', '🤩', '🥳', '🤔', '🤫', '🙄', '😣', '😢', '😭', '😤', '😠', '🤯', '🥶', '😱', '👋', '👍', '👎', '👏', '🙏', '💪', '🔥', '✨', '❤️', '💔', '💯'];
-
-    // Scroll al fondo
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -48,237 +31,181 @@ const ChatBotMobile = ({
         if (isOpen) {
             setTimeout(scrollToBottom, 100);
         }
-    }, [messages, isTyping, selectedFile, isRecording, isOpen]);
+    }, [messages, isOpen, sheetHeight, isTyping]);
 
-    // Enviar mensaje
-    const handleSendMessage = async (e) => {
+    const handleSendMessage = (e) => {
         if (e) e.preventDefault();
-        if (inputValue.trim() === '' && !selectedFile && !isRecording) return;
+        if (!inputValue.trim()) return;
 
-        const userMessage = inputValue.trim();
-        if (userMessage) {
-            const newTextMessage = {
-                id: Date.now(),
-                text: userMessage,
-                sender: 'user',
-                type: 'text',
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages(prev => [...prev, newTextMessage]);
-            setInputValue('');
-            setIsTyping(true);
+        // Añadir mensaje del usuario
+        const newUserMsg = { id: Date.now(), text: inputValue.trim(), sender: 'user', type: 'text' };
+        if (setMessages) setMessages(prev => [...prev, newUserMsg]);
+        if (setInputValue) setInputValue('');
+        if (setIsTyping) setIsTyping(true);
 
-            setTimeout(() => {
-                setMessages(prev => [...prev, {
-                    id: Date.now() + 10,
-                    text: 'Conecta tu servicio de IA aquí para obtener respuestas reales.',
-                    sender: 'bot',
-                    type: 'text',
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }]);
-                setIsTyping(false);
-            }, 1000);
-        }
-
-        if (selectedFile) {
-            const newFileMessage = {
-                id: Date.now(),
-                file: {
-                    name: selectedFile.name,
-                    size: (selectedFile.size / 1024).toFixed(1) + ' KB',
-                    type: selectedFile.type.startsWith('image/') ? 'image' : 'doc'
-                },
-                sender: 'user',
-                type: 'file',
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages(prev => [...prev, newFileMessage]);
-            setSelectedFile(null);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-
-        if (isRecording) setIsRecording(false);
-        setShowEmojiPicker(false);
+        // Simular respuesta del bot tras 1 segundo
+        setTimeout(() => {
+            const botResponse = { id: Date.now() + 10, text: 'Conecta tu servicio de IA aquí para obtener respuestas reales.', sender: 'bot', type: 'text' };
+            if (setMessages) setMessages(prev => [...prev, botResponse]);
+            if (setIsTyping) setIsTyping(false);
+        }, 1000);
     };
 
-    const handleEmojiClick = (emoji) => setInputValue(prev => prev + emoji);
-    const removeSelectedFile = () => {
-        setSelectedFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+    // Funciones para abrir/cerrar el modal
+    const closeSheet = () => {
+        if (setIsOpen) setIsOpen(false);
+        if (setChatState) setChatState('closed');
     };
 
-    // 1. Sync isOpen based on external chatState (Parent -> Child)
+    // Iniciar el arrastre
+    const onDragStart = (e) => {
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startY.current = clientY;
+        if (sheetRef.current) {
+            startHeight.current = sheetRef.current.getBoundingClientRect().height;
+            setIsDragging(true);
+        }
+    };
+
+    // Efecto para manejar el arrastre continuo globalmente
     useEffect(() => {
-        if (chatState !== 'closed' && !isOpen) {
-            setIsOpen(true);
-        } else if (chatState === 'closed' && isOpen) {
-            setIsOpen(false);
-        }
-    }, [chatState]);
+        if (!isDragging) return;
 
-    // 2. Handle drawer closure (Child -> Parent)
-    const handleOpenChange = (open) => {
-        setIsOpen(open);
-        if (!open) {
-            setChatState('closed');
-        }
-    };
+        const handleMove = (e) => {
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const deltaY = startY.current - clientY;
+            const newHeightPx = startHeight.current + deltaY;
+            const windowHeight = window.innerHeight;
+            let newHeightVh = (newHeightPx / windowHeight) * 100;
 
-    const [snap, setSnap] = useState(0.5);
+            // Añadir un poco de resistencia elástica si se arrastra más allá del 90%
+            if (newHeightVh > 90) {
+                newHeightVh = 90 + (newHeightVh - 90) * 0.2;
+            }
 
-    // 3. Optional: Sync snap from chatState if forced from parent
+            setSheetHeight(newHeightVh);
+            currentHeightRef.current = newHeightVh;
+        };
+
+        const handleEnd = () => {
+            setIsDragging(false);
+            const finalHeight = currentHeightRef.current;
+
+            // Lógica de "Snapping" (Ajuste automático) al soltar
+            if (finalHeight > 70) {
+                setSheetHeight(90); // Expandir al 90%
+                currentHeightRef.current = 90;
+            } else if (finalHeight < 35) {
+                closeSheet(); // Cerrar si se arrastra muy abajo
+            } else {
+                setSheetHeight(50); // Volver a la mitad (50%)
+                currentHeightRef.current = 50;
+            }
+        };
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleEnd);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('mouseup', handleEnd);
+            window.removeEventListener('touchmove', handleMove);
+            window.removeEventListener('touchend', handleEnd);
+        };
+    }, [isDragging]);
+
+    // Restaurar altura al abrir si estaba cerrado por arrastre
     useEffect(() => {
-        if (chatState === 'full' && snap !== 1) setSnap(1);
-        if (chatState === 'half' && snap !== 0.5) setSnap(0.5);
-    }, [chatState]);
-
-    // 4. Report snap changes back to parent
-    const onSnapChange = (s) => {
-        setSnap(s);
-        if (s === 1) setChatState('full');
-        else if (s === 0.5) setChatState('half');
-        else if (s === 0) {
-            setChatState('closed');
-            setIsOpen(false);
+        if (isOpen) {
+            if (currentHeightRef.current < 35) {
+                setSheetHeight(50);
+                currentHeightRef.current = 50;
+            }
         }
-    };
+    }, [isOpen]);
+
+    // Si no está el chat para renderizar (no hay parent messages), fallback visual 
+    // Ojo: esto asume que siempre recibimos messages
+    const displayMessages = messages || [];
+    const displayInput = inputValue || '';
 
     return (
-        <Drawer.Root
-            open={isOpen}
-            onOpenChange={handleOpenChange}
-            snapPoints={[0.5, 1]}
-            activeSnapPoint={snap}
-            setActiveSnapPoint={onSnapChange}
-            shouldScaleBackground={false} // Desactivado para no achicar el mapa y poder usarlo
-            dismissible={true}
-            fadeFromIndex={0}
-            modal={false} // Permite usar el mapa interactivo detrás
-        >
-            <Drawer.Portal>
-                {/* Vaul exige Drawer.Content con medidas fijas para calcular el drag. Lo hacemos alto pero transparente a clics */}
-                <Drawer.Content
-                    className="fixed bottom-0 left-0 right-0 flex flex-col justify-start outline-none pointer-events-none z-[100005]"
-                    style={{ height: '96vh' }}
+        <>
+            {/* El fondo ya no tiene un overlay que bloquee los clics para que se pueda interactuar con el mapa/app */}
+
+            {/* --- Modal Bottom Sheet --- */}
+            <div
+                ref={sheetRef}
+                style={{
+                    height: `${sheetHeight}vh`,
+                    transform: isOpen ? 'translateY(0)' : 'translateY(100%)'
+                }}
+                className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-[2rem] shadow-2xl flex flex-col w-full ${isDragging ? 'transition-none' : 'transition-all duration-300 ease-out'
+                    }`}
+                role="dialog"
+                aria-modal="true"
+            >
+                {/* Zona superior (Header) que se puede arrastrar */}
+                <div
+                    className="pt-6 pb-4 px-6 cursor-grab active:cursor-grabbing flex-shrink-0"
+                    onMouseDown={onDragStart}
+                    onTouchStart={onDragStart}
                 >
-                    {/* Contenedor visual dinámico que sí captura clics. Usamos alturas fijas en VH puro para evitar bugs de teclado en iOS */}
-                    <div ref={containerRef} className="w-full flex-col flex bg-white/80 dark:bg-black/60 backdrop-blur-3xl border-t border-white/40 dark:border-white/10 rounded-t-[32px] overflow-hidden shadow-[0_-8px_40px_rgba(0,0,0,0.12)] pointer-events-auto"
-                        style={{ height: snap === 1 ? '96vh' : '48vh', transition: 'height 0.4s cubic-bezier(0.32, 0.72, 0, 1)' }}
-                    >
-                        <Drawer.Title className="sr-only">Chat de MIA</Drawer.Title>
-                        <Drawer.Description className="sr-only">Asistente virtual de turismo en Huancayo</Drawer.Description>
+                    {/* Indicador visual de arrastre (Handle) */}
+                    <div
+                        className="w-14 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 hover:bg-gray-400 transition-colors"
+                    />
 
-                        {/* Handle visual */}
-                        <div className="w-full flex justify-center pt-5 pb-3 flex-shrink-0 cursor-grab active:cursor-grabbing bg-transparent relative z-10">
-                            <div className="w-12 h-1.5 rounded-full bg-black/20 dark:bg-white/30 backdrop-blur-sm" />
-                        </div>
 
-                        {/* Messages Area */}
-                        <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-hide flex flex-col pt-2 w-full" onClick={() => setShowEmojiPicker(false)}>
-                            <div className={`text-center text-[10px] text-gray-500 dark:text-gray-400 font-bold my-4 uppercase tracking-widest opacity-50`}>HOY</div>
+                </div>
 
-                            {messages.map((msg) => {
-                                const isUser = msg.sender === 'user';
-                                return (
-                                    <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-full group`}>
-                                        {msg.type === 'text' && (
-                                            <div className={`px-4 py-3 max-w-[85%] text-[15px] leading-relaxed backdrop-blur-md transition-all duration-300 ${isUser ? 'bg-black text-white dark:bg-white/10 dark:text-white rounded-2xl rounded-tr-none shadow-sm' : 'bg-white/60 text-black dark:bg-white/5 dark:text-white rounded-2xl rounded-tl-none border border-black/5 dark:border-white/5 shadow-sm'}`}>
-                                                {msg.text}
-                                            </div>
-                                        )}
-                                        {msg.type === 'file' && (
-                                            <div className={`p-3 max-w-[85%] rounded-2xl flex items-center gap-3 backdrop-blur-md ${isUser ? 'bg-black text-white dark:bg-white/10 dark:text-white rounded-tr-none' : 'bg-white/60 text-black dark:bg-white/5 dark:text-white rounded-tl-none border border-black/5 dark:border-white/5'}`}>
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUser ? 'bg-white/10' : 'bg-white shadow-sm dark:bg-white/10'}`}>
-                                                    {msg.file.type === 'image' ? <ImageIcon size={20} /> : <FileText size={16} />}
-                                                </div>
-                                                <div className="flex flex-col overflow-hidden">
-                                                    <span className="text-sm font-medium truncate w-32">{msg.file.name}</span>
-                                                    <span className="text-[10px] opacity-70">{msg.file.size}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-
-                            {isTyping && (
-                                <div className="flex items-start mt-4">
-                                    <div className={`px-4 py-3 rounded-2xl rounded-tl-none flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-white/80 dark:bg-white/10 border border-black/5 dark:border-white/10 shadow-sm`}>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:0.2s]"></span>
-                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-bounce [animation-delay:0.4s]"></span>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} className="h-4" />
-                        </div>
-
-                        {/* Input Area */}
-                        <div className="mt-auto bg-transparent flex-shrink-0 z-50">
-                            <div className="p-4 pb-6 transition-all duration-300 relative">
-                                {/* Gradiente difuminado sobre el input para suavizar la transición del scroll */}
-                                <div className="absolute -top-10 left-0 right-0 h-10 bg-gradient-to-b from-transparent to-white/80 dark:to-black/60 pointer-events-none" />
-
-                                {selectedFile && (
-                                    <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                                        <div className={`bg-white/60 border-black/5 dark:bg-white/5 dark:border-white/5 border rounded-xl p-2 flex items-center justify-between backdrop-blur-md`}>
-                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-500 shrink-0">
-                                                    {selectedFile.type.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
-                                                </div>
-                                                <span className={`text-xs font-medium truncate text-gray-900 dark:text-white`}>{selectedFile.name}</span>
-                                            </div>
-                                            <button onClick={removeSelectedFile} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {showEmojiPicker && (
-                                    <div className="mb-3 animate-in fade-in slide-in-from-bottom-2">
-                                        <div className={`bg-white/80 border-black/5 dark:bg-[#1c1c1e]/80 dark:border-white/5 border rounded-2xl p-3 grid grid-cols-8 gap-1 h-40 overflow-y-auto scrollbar-hide shadow-xl backdrop-blur-xl`}>
-                                            {emojis.map(emoji => (
-                                                <button key={emoji} type="button" onClick={() => handleEmojiClick(emoji)} className="text-xl p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors">{emoji}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center justify-center w-full px-2">
-                                    <div className="w-full max-w-[320px] flex items-center gap-2 group">
-                                        <div className="flex-1">
-                                            <LiquidGlassInput
-                                                isDarkMode={isDarkMode}
-                                                value={inputValue}
-                                                onChange={(e) => setInputValue(e.target.value)}
-                                                placeholder="Escribe un mensaje..."
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleSendMessage(e);
-                                                    }
-                                                }}
-                                                className="!h-12 !text-sm"
-                                            />
-                                        </div>
-                                        <div className="w-[48px] h-[48px] shrink-0">
-                                            <LiquidActionButton
-                                                isDarkMode={isDarkMode}
-                                                onClick={handleSendMessage}
-                                                disabled={!inputValue.trim() && !selectedFile}
-                                                className={!inputValue.trim() && !selectedFile ? "opacity-50 pointer-events-none" : ""}
-                                            >
-                                                <ArrowUp size={20} strokeWidth={2.5} className={!inputValue.trim() && !selectedFile ? "text-gray-500 rotate-90" : "text-black dark:text-white rotate-90"} />
-                                            </LiquidActionButton>
-                                        </div>
-                                    </div>
-                                </div>
+                {/* Contenedor scrollable de mensajes */}
+                <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4 pt-2">
+                    {displayMessages.map((msg) => (
+                        <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] px-4 py-2.5 shadow-sm text-sm leading-relaxed ${msg.sender === 'user'
+                                ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm'
+                                : 'bg-gray-100 text-gray-800 rounded-2xl rounded-bl-sm border border-gray-200'
+                                }`}>
+                                {msg.text || (msg.file && `Envió un archivo: ${msg.file.name}`)}
                             </div>
                         </div>
-                    </div>
-                </Drawer.Content>
-            </Drawer.Portal>
-        </Drawer.Root >
-    );
-};
+                    ))}
+                    {isTyping && (
+                        <div className="flex items-start">
+                            <div className={`px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center h-10 justify-center backdrop-blur-md bg-gray-100`}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.2s]"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:0.4s]"></span>
+                            </div>
+                        </div>
+                    )}
+                    {/* Div invisible para anclar el scroll automático al fondo */}
+                    <div ref={messagesEndRef} />
+                </div>
 
-export default ChatBotMobile;
+                {/* Input de texto inferior (Fijo en la base) */}
+                <div className="flex-shrink-0 p-4 border-t border-gray-100 bg-white pb-6">
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={displayInput}
+                            onChange={(e) => setInputValue && setInputValue(e.target.value)}
+                            placeholder="Escribe un mensaje..."
+                            className="flex-1 bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 text-base rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent block py-3.5 px-5 outline-none transition-all"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!displayInput.trim()}
+                            className="p-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-full transition-colors flex items-center justify-center shadow-sm"
+                        >
+                            <Send className="w-5 h-5" />
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </>
+    );
+}
